@@ -16,7 +16,7 @@ const getCodeWorker = () =>
 
 const getNameWorker = (lang) =>
   (nameWorkers[lang] ||= createWorker(lang).then(async (w) => {
-    await w.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE });
+    await w.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT });
     return w;
   }));
 
@@ -67,8 +67,8 @@ export function prepare(source, [x, y, w, h], scale, binarize) {
   return c;
 }
 
-export const CODE_REGION = [0.02, 0.9, 0.45, 0.075];
-export const NAME_REGION = [0.15, 0.025, 0.6, 0.05];
+export const CODE_REGION = [0, 0.85, 0.62, 0.15];
+export const NAME_REGION = [0.08, 0.01, 0.76, 0.09];
 
 const regionOf = (card, [fx, fy, fw, fh]) => [fx * card.width, fy * card.height, fw * card.width, fh * card.height];
 
@@ -79,11 +79,11 @@ export async function readCard(card) {
   for (const binarize of [false, true]) {
     const out = await cw.recognize(prepare(card, regionOf(card, CODE_REGION), 3, binarize));
     const parsed = parseCode(out.data.text);
-    codeText = out.data.text.trim();
-    if (parsed.number) {
+    if (parsed.number && (!code.number || parsed.full)) {
       code = parsed;
-      break;
+      codeText = out.data.text.trim();
     }
+    if (code.full) break;
   }
   const nameCanvas = prepare(card, regionOf(card, NAME_REGION), 2, false);
   let match = null;
@@ -97,5 +97,7 @@ export async function readCard(card) {
     }
     if (match && match.score >= 0.75) break;
   }
-  return { ...code, match, raw: { code: codeText, name: nameText } };
+  const { full, ...fields } = code;
+  if (!full && fields.total.length === 3) fields.number = "";
+  return { ...fields, match, raw: { code: codeText, name: nameText } };
 }

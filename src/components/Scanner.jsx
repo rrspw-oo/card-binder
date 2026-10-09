@@ -195,19 +195,19 @@ function Scanner({ onCaptured, onClose }) {
           <span className="scanner-region" style={box(NAME_REGION)} />
           <span className="scanner-region is-code" style={box(CODE_REGION)} />
         </div>
+        <p className="scanner-hint">
+          {cameraError && mode === "camera" && (
+            <button type="button" className="retry" onClick={() => setAttempt((n) => n + 1)}>
+              重試
+            </button>
+          )}
+          {cameraError && mode === "camera"
+            ? `${cameraError}，也可以改從相簿選照片`
+            : mode === "photo"
+              ? "拖曳、縮放照片，讓卡片對準框線"
+              : "卡片對準框線，卡號在左下框內"}
+        </p>
       </div>
-      <p className="scanner-hint">
-        {cameraError && mode === "camera" && (
-          <button type="button" className="retry" onClick={() => setAttempt((n) => n + 1)}>
-            重試
-          </button>
-        )}
-        {cameraError && mode === "camera"
-          ? `${cameraError}，也可以改從相簿選照片`
-          : mode === "photo"
-            ? "拖曳、縮放照片，讓卡片對準框線"
-            : "卡片對準框線，卡號放進左下的小框"}
-      </p>
       <div className="scanner-bar">
         <button type="button" className="text-button is-light" onClick={onClose}>
           取消
