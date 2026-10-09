@@ -646,17 +646,6 @@ p {
   pointer-events: none;
 }
 
-.scanner-region {
-  position: absolute;
-  border: 1px dashed rgba(255, 255, 255, 0.7);
-  border-radius: 4px;
-}
-
-.scanner-region.is-code {
-  border-style: solid;
-  border-color: #fff;
-}
-
 .scanner-hint {
   position: absolute;
   top: calc(10px + env(safe-area-inset-top));

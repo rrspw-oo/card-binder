@@ -76,17 +76,20 @@ export function matchName(text) {
     .split(/[\s\d|:：,，。.]+/)
     .map(normalize)
     .filter((t) => t.length >= 2);
-  let best = null;
+  const top = new Map();
   for (const entry of INDEX) {
     entry.keys.forEach((key, i) => {
       if (!key) return;
       for (const [t, token] of tokens.entries()) {
         const score = similarity(token, key) - t * 0.01;
-        if (!best || score > best.score) best = { entry, lang: ["zh", "ja", "en"][i], score };
+        const prev = top.get(entry.dex);
+        if (!prev || score > prev.score) top.set(entry.dex, { entry, lang: ["zh", "ja", "en"][i], score });
       }
     });
   }
+  const [best, second] = [...top.values()].sort((a, b) => b.score - a.score);
   if (!best || best.score < (best.lang === "en" ? 0.8 : 0.6)) return null;
+  if (second && best.score - second.score < 0.05) return null;
   return { dex: best.entry.dex, lang: best.lang, name: best.entry[best.lang], score: best.score };
 }
 

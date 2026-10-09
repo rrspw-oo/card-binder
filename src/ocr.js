@@ -1,5 +1,13 @@
 import { createWorker, PSM } from "tesseract.js";
 import { parseCode, matchName } from "./parse";
+import NAMES from "./data/names.json";
+
+const charsOf = (i) => [...new Set(NAMES.map((n) => n[i]).join(""))].join("");
+const NAME_WHITELIST = {
+  chi_tra: charsOf(1),
+  jpn: charsOf(2),
+  eng: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.- ",
+};
 
 let codeWorker;
 const nameWorkers = {};
@@ -16,7 +24,7 @@ const getCodeWorker = () =>
 
 const getNameWorker = (lang) =>
   (nameWorkers[lang] ||= createWorker(lang).then(async (w) => {
-    await w.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT });
+    await w.setParameters({ tessedit_char_whitelist: NAME_WHITELIST[lang] });
     return w;
   }));
 
@@ -67,8 +75,8 @@ export function prepare(source, [x, y, w, h], scale, binarize) {
   return c;
 }
 
-export const CODE_REGION = [0, 0.85, 0.62, 0.15];
-export const NAME_REGION = [0.08, 0.01, 0.76, 0.09];
+const CODE_BANDS = [0.88, 0.84, 0.92, 0.8, 0.95].map((y) => [0, y, 0.65, 0.07]);
+export const NAME_REGION = [0, 0, 1, 0.3];
 
 const regionOf = (card, [fx, fy, fw, fh]) => [fx * card.width, fy * card.height, fw * card.width, fh * card.height];
 
@@ -76,20 +84,30 @@ export async function readCard(card) {
   const [cw] = await warmUp();
   let code = { number: "", total: "", rarity: "", setCode: "" };
   let codeText = "";
-  for (const binarize of [false, true]) {
-    const out = await cw.recognize(prepare(card, regionOf(card, CODE_REGION), 3, binarize));
-    const parsed = parseCode(out.data.text);
-    if (parsed.number && (!code.number || parsed.full)) {
-      code = parsed;
-      codeText = out.data.text.trim();
+  scan: for (const band of CODE_BANDS) {
+    for (const binarize of [false, true]) {
+      const out = await cw.recognize(prepare(card, regionOf(card, band), 3, binarize));
+      const parsed = parseCode(out.data.text);
+      if (parsed.number && (!code.number || parsed.full)) {
+        code = parsed;
+        codeText = out.data.text.trim();
+      }
+      if (code.full) break scan;
     }
-    if (code.full) break;
   }
-  const nameCanvas = prepare(card, regionOf(card, NAME_REGION), 2, false);
+  const nameCanvas = prepare(card, regionOf(card, NAME_REGION), 1, false);
   let match = null;
   let nameText = "";
-  for (const lang of NAME_LANGS) {
-    const out = await (await getNameWorker(lang)).recognize(nameCanvas);
+  const attempts = [
+    ["chi_tra", PSM.SPARSE_TEXT],
+    ["chi_tra", PSM.SINGLE_BLOCK],
+    ["jpn", PSM.SPARSE_TEXT],
+    ["eng", PSM.SPARSE_TEXT],
+  ];
+  for (const [lang, psm] of attempts) {
+    const worker = await getNameWorker(lang);
+    await worker.setParameters({ tessedit_pageseg_mode: psm });
+    const out = await worker.recognize(nameCanvas);
     const found = matchName(out.data.text);
     if (found && (!match || found.score > match.score)) {
       match = found;

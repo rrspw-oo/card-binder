@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CODE_REGION, NAME_REGION, readCard, warmUp } from "../ocr";
+import { readCard, warmUp } from "../ocr";
 
 const CARD_W = 630;
 const CARD_H = 880;
@@ -166,8 +166,6 @@ function Scanner({ onCaptured, onClose }) {
     onCaptured({ photo: photoBlob, result });
   };
 
-  const box = (r) => ({ left: `${r[0] * 100}%`, top: `${r[1] * 100}%`, width: `${r[2] * 100}%`, height: `${r[3] * 100}%` });
-
   return (
     <div className="scanner">
       <div
@@ -191,10 +189,7 @@ function Scanner({ onCaptured, onClose }) {
             style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})` }}
           />
         )}
-        <div ref={frameRef} className="scanner-frame">
-          <span className="scanner-region" style={box(NAME_REGION)} />
-          <span className="scanner-region is-code" style={box(CODE_REGION)} />
-        </div>
+        <div ref={frameRef} className="scanner-frame" />
         <p className="scanner-hint">
           {cameraError && mode === "camera" && (
             <button type="button" className="retry" onClick={() => setAttempt((n) => n + 1)}>
@@ -204,8 +199,8 @@ function Scanner({ onCaptured, onClose }) {
           {cameraError && mode === "camera"
             ? `${cameraError}，也可以改從相簿選照片`
             : mode === "photo"
-              ? "拖曳、縮放照片，讓卡片對準框線"
-              : "卡片對準框線，卡號在左下框內"}
+              ? "拖曳、縮放照片，讓卡片大致在框內"
+              : "卡片放進框內就好，不用對齊"}
         </p>
       </div>
       <div className="scanner-bar">
