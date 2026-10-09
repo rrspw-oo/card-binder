@@ -31,6 +31,18 @@ function cropToCanvas(source, [x, y, w, h], width) {
   return c;
 }
 
+const CAMERA = { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } };
+
+const CAMERA_ERRORS = {
+  NotAllowedError: "相機權限被拒絕。請在瀏覽器的網站設定允許相機，再按重試",
+  SecurityError: "相機權限被拒絕。請在瀏覽器的網站設定允許相機，再按重試",
+  NotFoundError: "這支手機找不到可用的相機",
+  NotReadableError: "相機正被其他 App 使用，關掉後再按重試",
+  AbortError: "相機正被其他 App 使用，關掉後再按重試",
+};
+
+const cameraMessage = (err) => CAMERA_ERRORS[err?.name] || `無法開啟相機（${err?.name || "未知原因"}）`;
+
 const toBlob = (canvas) => new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
 
 function Scanner({ onCaptured, onClose }) {
@@ -44,19 +56,42 @@ function Scanner({ onCaptured, onClose }) {
   const [view, setView] = useState({ scale: 1, x: 0, y: 0 });
   const [busy, setBusy] = useState("");
 
+  const streamRef = useRef(null);
+  const [attempt, setAttempt] = useState(0);
+
   useEffect(() => {
     warmUp();
-    let stream;
-    navigator.mediaDevices
-      ?.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false })
-      .then((s) => {
-        stream = s;
-        if (videoRef.current) videoRef.current.srcObject = s;
-      })
-      .catch(() => setCameraError("無法開啟相機，可以改從相簿選照片"));
-    if (!navigator.mediaDevices) setCameraError("這個瀏覽器不支援相機，可以改從相簿選照片");
-    return () => stream?.getTracks().forEach((t) => t.stop());
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError(window.isSecureContext ? "這個瀏覽器不支援相機，請改用 Safari 或 Chrome 開啟" : "網址不是 https，瀏覽器不允許使用相機");
+      return;
+    }
+    const attach = (s) => {
+      if (cancelled) {
+        s.getTracks().forEach((t) => t.stop());
+        return;
+      }
+      streamRef.current = s;
+      setCameraError("");
+      if (videoRef.current) videoRef.current.srcObject = s;
+    };
+    navigator.mediaDevices
+      .getUserMedia({ video: CAMERA, audio: false })
+      .catch((err) => {
+        if (err?.name === "NotAllowedError" || err?.name === "SecurityError") throw err;
+        return navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      })
+      .then(attach)
+      .catch((err) => !cancelled && setCameraError(cameraMessage(err)));
+    return () => {
+      cancelled = true;
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    };
+  }, [attempt]);
 
   useEffect(() => () => photo && URL.revokeObjectURL(photo.url), [photo]);
 
@@ -162,8 +197,13 @@ function Scanner({ onCaptured, onClose }) {
         </div>
       </div>
       <p className="scanner-hint">
+        {cameraError && mode === "camera" && (
+          <button type="button" className="retry" onClick={() => setAttempt((n) => n + 1)}>
+            重試
+          </button>
+        )}
         {cameraError && mode === "camera"
-          ? cameraError
+          ? `${cameraError}，也可以改從相簿選照片`
           : mode === "photo"
             ? "拖曳、縮放照片，讓卡片對準框線"
             : "卡片對準框線，卡號放進左下的小框"}
