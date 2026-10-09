@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { db } from "../db";
 import { useLive } from "../useLive";
 import { LANGS, RARITIES } from "../parse";
+import Photo from "./Photo";
 
 const LANG_LABEL = Object.fromEntries(LANGS);
 const TABS = [
@@ -10,15 +11,18 @@ const TABS = [
   ["tags", "自訂"],
 ];
 
+const rank = (card) => RARITIES.indexOf(card.rarity);
+
 function groupSets(cards) {
   const map = new Map();
   for (const card of cards) {
-    const g = map.get(card.setKey) || { key: card.setKey, setCode: card.setCode, lang: card.lang, total: Number(card.total) || 0, numbers: new Set(), copies: 0, kinds: 0, last: 0 };
+    const g = map.get(card.setKey) || { key: card.setKey, setCode: card.setCode, lang: card.lang, total: Number(card.total) || 0, numbers: new Set(), copies: 0, kinds: 0, last: 0, cover: card };
     const n = Number(card.number);
     if (n && (!g.total || n <= g.total)) g.numbers.add(n);
     g.copies += card.qty;
     g.kinds += 1;
     g.last = Math.max(g.last, card.createdAt);
+    if (rank(card) > rank(g.cover) || (rank(card) === rank(g.cover) && Number(card.number) < Number(g.cover.number))) g.cover = card;
     map.set(card.setKey, g);
   }
   return [...map.values()].sort((a, b) => b.last - a.last);
@@ -62,17 +66,20 @@ function Binder({ tab, onTab, onOpenSet, onOpenRarity, onOpenTag, onScan, onBack
       </div>
       {cards && cards.length === 0 && <p className="empty">還沒有卡片，按下方「掃描」開始建立卡冊</p>}
       {tab === "sets" && (
-        <ul className="rows">
+        <ul className="shelf">
           {sets.map((g) => (
             <li key={g.key}>
-              <button type="button" className="row" onClick={() => onOpenSet(g.key)}>
-                <span className="row-main">
+              <button type="button" className="cover" onClick={() => onOpenSet(g.key)}>
+                <span className="cover-art">
+                  <Photo blob={g.cover.photo} alt={g.setCode} />
+                </span>
+                <span className="cover-title">
                   <strong>{g.setCode}</strong>
                   <span className="muted">{LANG_LABEL[g.lang]}</span>
                 </span>
-                <span className="row-side">
+                <span className="cover-meta muted">
                   {g.total ? `${g.numbers.size} / ${g.total}` : `${g.kinds} 種`}
-                  {g.copies > g.kinds && <span className="muted">，重複 {g.copies - g.kinds}</span>}
+                  {g.copies > g.kinds ? `，重複 ${g.copies - g.kinds}` : ""}
                 </span>
                 {g.total > 0 && (
                   <span className="bar">

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { db } from "../db";
 import { useLive } from "../useLive";
 import { LANGS, RARITIES, missingNumbers } from "../parse";
-import CardGrid from "./CardGrid";
+import BinderPages from "./BinderPages";
 
 const LANG_LABEL = Object.fromEntries(LANGS);
 const byNumber = (a, b) => (Number(a.number) || 0) - (Number(b.number) || 0) || a.number.localeCompare(b.number);
@@ -35,6 +35,15 @@ function ListView({ kind, value, onBack, backLabel, onOpen }) {
   const owned = cards?.map((c) => Number(c.number)).filter((n) => n && n <= total) || [];
   const missing = total ? missingNumbers(total, owned) : [];
   const ownedCount = new Set(owned).size;
+  const slots = useMemo(() => {
+    if (kind === "set" && total && rarity === null) {
+      const byNo = new Map(sorted.map((c) => [Number(c.number), c]));
+      const fixed = Array.from({ length: total }, (_, i) => ({ key: `n${i + 1}`, label: String(i + 1).padStart(3, "0"), card: byNo.get(i + 1) || null }));
+      const extra = sorted.filter((c) => !(Number(c.number) >= 1 && Number(c.number) <= total)).map((c) => ({ key: `c${c.id}`, label: c.number, card: c }));
+      return [...fixed, ...extra];
+    }
+    return sorted.map((c) => ({ key: `c${c.id}`, label: c.number, card: c }));
+  }, [kind, total, rarity, sorted]);
 
   return (
     <div className="page">
@@ -63,7 +72,7 @@ function ListView({ kind, value, onBack, backLabel, onOpen }) {
           ))}
         </div>
       )}
-      <CardGrid cards={sorted} onOpen={onOpen} label={kind === "set" ? null : (c) => `${c.setCode} ${c.number}`} />
+      <BinderPages slots={slots} onOpen={onOpen} />
       {missing.length > 0 && rarity === null && (
         <section className="missing">
           <h2>還缺 {total - ownedCount} 張</h2>

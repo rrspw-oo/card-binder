@@ -2,24 +2,25 @@ import { createWorker, PSM } from "tesseract.js";
 import { parseCode, matchName } from "./parse";
 
 let codeWorker;
-let nameWorker;
+const nameWorkers = {};
+const NAME_LANGS = ["chi_tra", "jpn", "eng"];
 
 const getCodeWorker = () =>
   (codeWorker ||= createWorker("eng").then(async (w) => {
     await w.setParameters({
-      tessedit_pageseg_mode: PSM.SINGLE_LINE,
+      tessedit_pageseg_mode: PSM.SPARSE_TEXT,
       tessedit_char_whitelist: "0123456789/ ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
     });
     return w;
   }));
 
-const getNameWorker = () =>
-  (nameWorker ||= createWorker(["chi_tra", "jpn", "eng"]).then(async (w) => {
+const getNameWorker = (lang) =>
+  (nameWorkers[lang] ||= createWorker(lang).then(async (w) => {
     await w.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE });
     return w;
   }));
 
-export const warmUp = () => Promise.all([getCodeWorker(), getNameWorker()]);
+export const warmUp = () => Promise.all([getCodeWorker(), getNameWorker(NAME_LANGS[0])]);
 
 export function prepare(source, [x, y, w, h], scale, binarize) {
   const c = document.createElement("canvas");
@@ -67,12 +68,12 @@ export function prepare(source, [x, y, w, h], scale, binarize) {
 }
 
 export const CODE_REGION = [0.02, 0.9, 0.45, 0.075];
-export const NAME_REGION = [0.15, 0.02, 0.6, 0.075];
+export const NAME_REGION = [0.15, 0.025, 0.6, 0.05];
 
 const regionOf = (card, [fx, fy, fw, fh]) => [fx * card.width, fy * card.height, fw * card.width, fh * card.height];
 
 export async function readCard(card) {
-  const [cw, nw] = await warmUp();
+  const [cw] = await warmUp();
   let code = { number: "", total: "", rarity: "", setCode: "" };
   let codeText = "";
   for (const binarize of [false, true]) {
@@ -84,7 +85,17 @@ export async function readCard(card) {
       break;
     }
   }
-  const nameOut = await nw.recognize(prepare(card, regionOf(card, NAME_REGION), 2, false));
-  const name = matchName(nameOut.data.text);
-  return { ...code, match: name, raw: { code: codeText, name: nameOut.data.text.trim() } };
+  const nameCanvas = prepare(card, regionOf(card, NAME_REGION), 2, false);
+  let match = null;
+  let nameText = "";
+  for (const lang of NAME_LANGS) {
+    const out = await (await getNameWorker(lang)).recognize(nameCanvas);
+    const found = matchName(out.data.text);
+    if (found && (!match || found.score > match.score)) {
+      match = found;
+      nameText = out.data.text.trim();
+    }
+    if (match && match.score >= 0.75) break;
+  }
+  return { ...code, match, raw: { code: codeText, name: nameText } };
 }

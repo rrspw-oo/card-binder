@@ -45,11 +45,33 @@ const dice = (a, b) => {
   return (2 * hit) / (A.size + B.size || 1);
 };
 
+const CJK = /[\u3040-\u30ff\u4e00-\u9fff]/;
+
+const overlap = (a, b) => {
+  const pool = [...b];
+  let hit = 0;
+  for (const ch of a) {
+    const i = pool.indexOf(ch);
+    if (i >= 0) {
+      hit++;
+      pool.splice(i, 1);
+    }
+  }
+  return hit / Math.max(a.length, b.length);
+};
+
+const similarity = (token, key) => {
+  if (token.includes(key)) return 1;
+  const d = dice(token, key);
+  return CJK.test(key) ? Math.max(d, overlap(token, key)) : d;
+};
+
 const INDEX = NAMES.map(([dex, zh, ja, en]) => ({ dex, zh, ja, en, keys: [normalize(zh), normalize(ja), normalize(en)] }));
 
 export function matchName(text) {
   const tokens = text
     .normalize("NFKC")
+    .replace(/([\u3040-\u30ff\u4e00-\u9fff])\s+(?=[\u3040-\u30ff\u4e00-\u9fff])/g, "$1")
     .split(/[\s\d|:：,，。.]+/)
     .map(normalize)
     .filter((t) => t.length >= 2);
@@ -57,13 +79,13 @@ export function matchName(text) {
   for (const entry of INDEX) {
     entry.keys.forEach((key, i) => {
       if (!key) return;
-      for (const token of tokens) {
-        const score = token.includes(key) ? 1 : dice(token, key);
+      for (const [t, token] of tokens.entries()) {
+        const score = similarity(token, key) - t * 0.01;
         if (!best || score > best.score) best = { entry, lang: ["zh", "ja", "en"][i], score };
       }
     });
   }
-  if (!best || best.score < 0.5) return null;
+  if (!best || best.score < (best.lang === "en" ? 0.8 : 0.6)) return null;
   return { dex: best.entry.dex, lang: best.lang, name: best.entry[best.lang], score: best.score };
 }
 
