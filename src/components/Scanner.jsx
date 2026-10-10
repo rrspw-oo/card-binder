@@ -47,7 +47,13 @@ const CAMERA_ERRORS = {
   AbortError: "相機正被其他 App 使用，關掉後再按重試",
 };
 
-const cameraMessage = (err) => CAMERA_ERRORS[err?.name] || `無法開啟相機（${err?.name || "未知原因"}）`;
+const CHROME_IOS = /CriOS/.test(navigator.userAgent);
+const CHROME_IOS_DENIED = "Chrome 沒有拿到相機權限。到 iPhone 的「設定」→「App」→「Chrome」打開「相機」；再到 Chrome 選單的「設定」→「網站設定」→「相機」確認這個網站沒有被封鎖，然後按重試";
+
+const cameraMessage = (err) => {
+  if (CHROME_IOS && (err?.name === "NotAllowedError" || err?.name === "SecurityError")) return CHROME_IOS_DENIED;
+  return CAMERA_ERRORS[err?.name] || `無法開啟相機（${err?.name || "未知原因"}）`;
+};
 
 const toBlob = (canvas) => new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
 
@@ -79,7 +85,7 @@ function Scanner({ onClose }) {
   useEffect(() => {
     let cancelled = false;
     if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraError(window.isSecureContext ? "這個瀏覽器不支援相機，請改用 Safari 或 Chrome 開啟" : "網址不是 https，瀏覽器不允許使用相機");
+      setCameraError(!window.isSecureContext ? "網址不是 https，瀏覽器不允許使用相機" : CHROME_IOS ? "這個版本的 iPhone 不讓 Chrome 使用相機（需要 iOS 14.3 以上），請改用 Safari 開啟" : "這個瀏覽器不支援相機，請改用 Safari 或 Chrome 開啟");
       return;
     }
     const attach = (s) => {
