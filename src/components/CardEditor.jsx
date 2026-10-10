@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Photo from "./Photo";
 import { LANGS, RARITIES, RECENT_SETS, SET_NAMES, searchNames } from "../parse";
 
@@ -34,9 +34,17 @@ function CardEditor({ card, result, onSave, onCancel }) {
   const [nameFocus, setNameFocus] = useState(false);
   const suggestions = useMemo(() => (nameFocus ? searchNames(form.name, form.lang) : []), [form.name, form.lang, nameFocus]);
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
-  const valid = form.setCode.trim() && form.number.trim();
+  const setCodeRef = useRef(null);
+  const numberRef = useRef(null);
+  const [tried, setTried] = useState(false);
+  const missing = [!form.setCode.trim() && ["系列代號", setCodeRef], !form.number.trim() && ["卡號", numberRef]].filter(Boolean);
 
   const submit = (next) => {
+    if (missing.length) {
+      setTried(true);
+      missing[0][1].current.focus();
+      return;
+    }
     const out = {
       ...form,
       setCode: form.setCode.trim(),
@@ -69,13 +77,12 @@ function CardEditor({ card, result, onSave, onCancel }) {
             {result.number ? `讀到卡號 ${result.number}/${result.total}${result.rarity ? ` ${result.rarity}` : ""}` : "沒有讀到卡號，請手動輸入"}
             {result.match ? `，卡名 ${result.match.name}` : ""}
             {result.setCode ? `，系列 ${result.setCode}` : ""}
-            {result.seconds ? `（辨識 ${result.seconds.toFixed(1)} 秒，${result.passes} 次；模型載入 ${result.loadSeconds.toFixed(1)} 秒）` : ""}
           </p>
         )}
         <div className="field-row">
-          <label className="field">
+          <label className={tried && !form.setCode.trim() ? "field is-missing" : "field"}>
             <span>系列代號</span>
-            <input value={form.setCode} onChange={set("setCode")} placeholder="例：M6a" autoCapitalize="off" />
+            <input ref={setCodeRef} value={form.setCode} onChange={set("setCode")} placeholder="例：M6a" autoCapitalize="off" />
             {SET_NAMES[form.setCode.trim()] && <small className="field-note">{SET_NAMES[form.setCode.trim()]}</small>}
           </label>
           <label className="field is-small">
@@ -106,9 +113,9 @@ function CardEditor({ card, result, onSave, onCancel }) {
         )}
         {!form.setCode.trim() && <p className="muted small">系列代號在卡片左下角的小框裡，同一包卡只要填一次，之後會自動帶入</p>}
         <div className="field-row">
-          <label className="field">
+          <label className={tried && !form.number.trim() ? "field is-missing" : "field"}>
             <span>卡號</span>
-            <input value={form.number} onChange={set("number")} inputMode="numeric" placeholder="065" />
+            <input ref={numberRef} value={form.number} onChange={set("number")} inputMode="numeric" placeholder="065" />
           </label>
           <label className="field">
             <span>總張數</span>
@@ -153,15 +160,16 @@ function CardEditor({ card, result, onSave, onCancel }) {
           <input value={form.qty} onChange={set("qty")} inputMode="numeric" />
         </label>
       </div>
-      <footer className="page-foot">
+      <footer className={card.id ? "page-foot is-floating is-row is-single" : "page-foot is-floating is-row"}>
+        {tried && missing.length > 0 && <p className="foot-error">請填寫{missing.map(([label]) => label).join("、")}</p>}
+        <button type="button" className={card.id ? "button" : "button is-ghost"} onClick={() => submit("done")}>
+          儲存
+        </button>
         {!card.id && (
-          <button type="button" className="button" disabled={!valid} onClick={() => submit("scan")}>
+          <button type="button" className="button" onClick={() => submit("scan")}>
             儲存，繼續掃描
           </button>
         )}
-        <button type="button" className={card.id ? "button" : "button is-ghost"} disabled={!valid} onClick={() => submit("done")}>
-          儲存
-        </button>
       </footer>
     </div>
   );

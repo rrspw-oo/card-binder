@@ -2,6 +2,7 @@ import { parseCode, matchName, parseDex, detectLang, nameOfDex, parseSetCode } f
 import { detectCard, warpCard, expandQuad } from "./cardDetect";
 
 const DETECT_W = 320;
+const LIVE_W = 240;
 const CARD_W = 900;
 const CARD_H = Math.round((CARD_W * 88) / 63);
 
@@ -33,22 +34,38 @@ const run = (image) =>
     getWorker().postMessage({ id, image }, image ? [image] : []);
   });
 
-export const warmUp = () => run(null);
+let ready = false;
+
+export const warmUp = () => run(null).then(() => {
+  ready = true;
+});
+
+export const isReady = () => ready;
 
 const toBuffer = async (canvas) => (await new Promise((r) => canvas.toBlob(r, "image/jpeg", 0.9))).arrayBuffer();
 
-export function straighten(frame) {
-  const sw = DETECT_W;
-  const sh = Math.round((frame.height * DETECT_W) / frame.width);
+function grayOf(source, [x, y, w, h], sw) {
+  const sh = Math.round((h * sw) / w);
   const small = document.createElement("canvas");
   small.width = sw;
   small.height = sh;
-  const sctx = small.getContext("2d", { willReadFrequently: true });
-  sctx.drawImage(frame, 0, 0, sw, sh);
-  const px = sctx.getImageData(0, 0, sw, sh).data;
+  const ctx = small.getContext("2d", { willReadFrequently: true });
+  ctx.drawImage(source, x, y, w, h, 0, 0, sw, sh);
+  const px = ctx.getImageData(0, 0, sw, sh).data;
   const gray = new Float32Array(sw * sh);
   for (let i = 0; i < gray.length; i++) gray[i] = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
+  return { gray, sw, sh };
+}
+
+export function locate(source, rect) {
+  const { gray, sw, sh } = grayOf(source, rect, LIVE_W);
   const quad = detectCard(gray, sw, sh);
+  return quad && quad.map(([x, y]) => [x / sw, y / sh]);
+}
+
+export function straighten(frame) {
+  const { gray, sw } = grayOf(frame, [0, 0, frame.width, frame.height], DETECT_W);
+  const quad = detectCard(gray, sw, Math.round((frame.height * sw) / frame.width));
   if (!quad) return null;
   const s = frame.width / sw;
   const src = frame.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, frame.width, frame.height).data;
@@ -79,5 +96,6 @@ export async function readCard(card, frame, knownSets = []) {
   const { full, ...fields } = code;
   if (!full && fields.total.length === 3) fields.number = "";
   const set = parseSetCode(text, knownSets);
+  console.info(`[ocr] ${((performance.now() - started) / 1000).toFixed(1)}s, ${passes} pass(es), model load ${loadSeconds.toFixed(1)}s`);
   return { ...fields, setCode: set.code, setCandidates: set.candidates, lang, match, raw: text, seconds: (performance.now() - started) / 1000, passes, loadSeconds };
 }

@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { readCard, straighten, warmUp } from "../ocr";
+import { isReady, locate, readCard, straighten, warmUp } from "../ocr";
 import { db } from "../db";
 
 const CARD_W = 630;
 const CARD_H = 880;
 const OCR_MAX_W = 1000;
+const LIVE_MS = 400;
 
 function mapFrame(frame, box, naturalW, naturalH) {
   const sx = naturalW / box.width;
@@ -55,7 +56,8 @@ function Scanner({ onCaptured, onClose }) {
   const [cameraError, setCameraError] = useState("");
   const [photo, setPhoto] = useState(null);
   const [view, setView] = useState({ scale: 1, x: 0, y: 0 });
-  const [busy, setBusy] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [found, setFound] = useState(null);
 
   const streamRef = useRef(null);
   const [attempt, setAttempt] = useState(0);
@@ -140,22 +142,38 @@ function Scanner({ onCaptured, onClose }) {
     setView((v) => ({ ...v, scale: Math.min(8, Math.max(0.3, v.scale * (e.deltaY < 0 ? 1.08 : 0.92))) }));
   };
 
-  const capture = async () => {
+  const sourceRect = () => {
     const frame = frameRef.current.getBoundingClientRect();
-    let source;
-    let rect;
     if (mode === "camera") {
       const video = videoRef.current;
-      if (!video?.videoWidth) return;
-      source = video;
-      rect = mapFrame(frame, coverBox(video, video.videoWidth, video.videoHeight), video.videoWidth, video.videoHeight);
-    } else {
-      const img = imgRef.current;
-      source = img;
-      rect = mapFrame(frame, img.getBoundingClientRect(), img.naturalWidth, img.naturalHeight);
+      if (!video?.videoWidth) return null;
+      return { source: video, rect: mapFrame(frame, coverBox(video, video.videoWidth, video.videoHeight), video.videoWidth, video.videoHeight) };
     }
+    const img = imgRef.current;
+    if (!img?.naturalWidth) return null;
+    return { source: img, rect: mapFrame(frame, img.getBoundingClientRect(), img.naturalWidth, img.naturalHeight) };
+  };
+
+  useEffect(() => {
+    setFound(null);
+    if (busy || (mode === "camera" && cameraError)) return;
+    let hits = 0;
+    const timer = setInterval(() => {
+      const target = sourceRect();
+      if (!target) return;
+      const quad = locate(target.source, target.rect);
+      hits = quad ? hits + 1 : 0;
+      setFound(hits >= 2 ? quad : null);
+    }, LIVE_MS);
+    return () => clearInterval(timer);
+  }, [mode, busy, cameraError]);
+
+  const capture = async () => {
+    const target = sourceRect();
+    if (!target) return;
+    const { source, rect } = target;
     if (mode === "camera") videoRef.current.pause();
-    setBusy("辨識中");
+    setBusy(true);
     const framed = cropToCanvas(source, rect, Math.min(OCR_MAX_W, Math.max(CARD_W, rect[2])));
     const card = straighten(framed) || framed;
     const photoBlob = await toBlob(cropToCanvas(card, [0, 0, card.width, card.height], CARD_W));
@@ -166,9 +184,20 @@ function Scanner({ onCaptured, onClose }) {
     } catch {
       result = null;
     }
-    setBusy("");
+    setBusy(false);
     onCaptured({ photo: photoBlob, result });
   };
+
+  const hint =
+    cameraError && mode === "camera"
+      ? `${cameraError}，也可以改從相簿選照片`
+      : busy
+        ? "辨識中，可以放下手機"
+        : found
+          ? "找到卡片，可以拍了"
+          : mode === "photo"
+            ? "拖曳、縮放照片，讓卡片在框內"
+            : "把卡片放進框內，不用對齊";
 
   return (
     <div className="scanner">
@@ -193,36 +222,38 @@ function Scanner({ onCaptured, onClose }) {
             style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})` }}
           />
         )}
-        <div ref={frameRef} className="scanner-frame" />
-        <p className="scanner-hint">
+        <div ref={frameRef} className={found ? "scanner-frame is-found" : "scanner-frame"}>
+          <span className="corner is-tl" />
+          <span className="corner is-tr" />
+          <span className="corner is-br" />
+          <span className="corner is-bl" />
+          {found && !busy && (
+            <svg className="scanner-outline" viewBox="0 0 1 1" preserveAspectRatio="none">
+              <polygon points={found.map(([x, y]) => `${x},${y}`).join(" ")} />
+            </svg>
+          )}
+          {busy && <span className="scanner-sweep" />}
+        </div>
+        <div className={found || busy ? "scanner-hint is-on" : "scanner-hint"}>
           {cameraError && mode === "camera" && (
             <button type="button" className="retry" onClick={() => setAttempt((n) => n + 1)}>
               重試
             </button>
           )}
-          {cameraError && mode === "camera"
-            ? `${cameraError}，也可以改從相簿選照片`
-            : mode === "photo"
-              ? "拖曳、縮放照片，讓卡片大致在框內"
-              : "卡片放進框內就好，不用對齊"}
-        </p>
+          <p>{hint}</p>
+          {busy && !isReady() && <p className="scanner-note">第一次使用要下載約 13MB 的辨識資料，需要一點時間</p>}
+        </div>
       </div>
       <div className="scanner-bar">
         <button type="button" className="text-button is-light" onClick={onClose}>
           取消
         </button>
-        <button type="button" className="shutter" aria-label="拍照" onClick={capture} disabled={Boolean(busy)} />
+        <button type="button" className={found ? "shutter is-ready" : "shutter"} aria-label="拍照" onClick={capture} disabled={busy} />
         <label className="text-button is-light">
           相簿
           <input type="file" accept="image/*" hidden onChange={pickPhoto} />
         </label>
       </div>
-      {busy && (
-        <div className="scanner-busy">
-          <p>{busy}，可以放下手機</p>
-          <p className="muted">第一次使用要下載約 13MB 的辨識資料，需要一點時間</p>
-        </div>
-      )}
     </div>
   );
 }
