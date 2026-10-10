@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { readCard, straighten, warmUp } from "../ocr";
+import { db } from "../db";
 
 const CARD_W = 630;
 const CARD_H = 880;
@@ -159,7 +160,8 @@ function Scanner({ onCaptured, onClose }) {
     const photoBlob = await toBlob(cropToCanvas(card, [0, 0, card.width, card.height], CARD_W));
     let result = null;
     try {
-      result = await readCard(card, framed);
+      const knownSets = [...new Set((await db.cards.toArray()).map((c) => c.setCode))];
+      result = await readCard(card, framed, knownSets);
     } catch {
       result = null;
     }

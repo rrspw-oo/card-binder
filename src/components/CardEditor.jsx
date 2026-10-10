@@ -19,7 +19,7 @@ function initialForm(card, result) {
   return {
     photo: card.photo,
     lang: result?.lang || last.lang || match?.lang || "zh",
-    setCode: last.setCode || "",
+    setCode: result?.setCode || last.setCode || "",
     total: result?.total || last.total || "",
     number: result?.number || "",
     rarity: result?.rarity || "",
@@ -68,6 +68,8 @@ function CardEditor({ card, result, onSave, onCancel }) {
           <p className="muted small">
             {result.number ? `讀到卡號 ${result.number}/${result.total}${result.rarity ? ` ${result.rarity}` : ""}` : "沒有讀到卡號，請手動輸入"}
             {result.match ? `，卡名 ${result.match.name}` : ""}
+            {result.setCode ? `，系列 ${result.setCode}` : ""}
+            {result.seconds ? `（辨識 ${result.seconds.toFixed(1)} 秒，${result.passes} 次；模型載入 ${result.loadSeconds.toFixed(1)} 秒）` : ""}
           </p>
         )}
         <div className="field-row">

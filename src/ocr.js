@@ -1,4 +1,4 @@
-import { parseCode, matchName, parseDex, detectLang, nameOfDex } from "./parse";
+import { parseCode, matchName, parseDex, detectLang, nameOfDex, parseSetCode } from "./parse";
 import { detectCard, warpCard, expandQuad } from "./cardDetect";
 
 const DETECT_W = 320;
@@ -7,6 +7,7 @@ const CARD_H = Math.round((CARD_W * 88) / 63);
 
 let worker;
 let seq = 0;
+let loadSeconds = 0;
 const pending = new Map();
 
 function getWorker() {
@@ -16,7 +17,10 @@ function getWorker() {
       const job = pending.get(data.id);
       pending.delete(data.id);
       if (data.error) job.reject(new Error(data.error));
-      else job.resolve(data.text);
+      else {
+        loadSeconds = data.loadSeconds || loadSeconds;
+        job.resolve(data.text);
+      }
     };
   }
   return worker;
@@ -56,11 +60,15 @@ export function straighten(frame) {
   return c;
 }
 
-export async function readCard(card, frame) {
+export async function readCard(card, frame, knownSets = []) {
+  await warmUp();
+  const started = performance.now();
+  let passes = 1;
   let text = await run(await toBuffer(card));
   let code = parseCode(text);
   if (!code.full && frame && frame !== card) {
     const second = await run(await toBuffer(frame));
+    passes++;
     const parsed = parseCode(second);
     if (parsed.full) code = parsed;
     text += `\n${second}`;
@@ -70,5 +78,5 @@ export async function readCard(card, frame) {
   const match = dex ? { dex, lang: lang || "zh", name: nameOfDex(dex, lang || "zh") } : matchName(text);
   const { full, ...fields } = code;
   if (!full && fields.total.length === 3) fields.number = "";
-  return { ...fields, lang, match, raw: text };
+  return { ...fields, setCode: parseSetCode(text, knownSets), lang, match, raw: text, seconds: (performance.now() - started) / 1000, passes, loadSeconds };
 }

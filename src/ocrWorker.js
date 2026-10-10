@@ -9,17 +9,21 @@ const service = new PaddleOcrService({
     charactersDictionary: `${base}ppocrv6_tiny_dict.txt`,
   },
 });
-const ready = service.initialize();
+const startedAt = performance.now();
+let loadSeconds = 0;
+const ready = service.initialize().then(() => {
+  loadSeconds = (performance.now() - startedAt) / 1000;
+});
 
 self.onmessage = async ({ data }) => {
   try {
     await ready;
     if (!data.image) {
-      self.postMessage({ id: data.id, text: "" });
+      self.postMessage({ id: data.id, text: "", loadSeconds });
       return;
     }
     const result = await service.recognize(data.image);
-    self.postMessage({ id: data.id, text: result.text || "" });
+    self.postMessage({ id: data.id, text: result.text || "", loadSeconds });
   } catch (err) {
     self.postMessage({ id: data.id, error: String(err?.message || err) });
   }

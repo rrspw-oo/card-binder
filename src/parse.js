@@ -93,6 +93,36 @@ export function matchName(text) {
   return { dex: best.entry.dex, lang: best.lang, name: best.entry[best.lang], score: best.score };
 }
 
+const DIGIT_LOOKALIKE = { b: "6", G: "6", O: "0", o: "0", D: "0", Q: "0", l: "1", I: "1", i: "1", S: "5", s: "5", Z: "2", z: "2", B: "8", g: "9", q: "9" };
+
+const normalizeSetCode = (raw) => {
+  const m = raw.match(/^([A-Z]{1,3})(.*)$/);
+  if (!m) return raw;
+  let rest = m[2];
+  let digits = "";
+  while (rest && (/\d/.test(rest[0]) || (DIGIT_LOOKALIKE[rest[0]] && rest.length > 1))) {
+    digits += /\d/.test(rest[0]) ? rest[0] : DIGIT_LOOKALIKE[rest[0]];
+    rest = rest.slice(1);
+  }
+  return `${m[1]}${digits}${rest}`;
+};
+
+export function parseSetCode(text, known = []) {
+  const line = text.split("\n").find((l) => /\d{1,3}\s*\/\s*\d{2,3}/.test(l));
+  if (!line) return "";
+  const before = line.slice(0, line.search(/\d{1,3}\s*\/\s*\d{2,3}/)).replace(/[^A-Za-z0-9]/g, "");
+  const core = before.replace(/^[D-J](?=[A-Za-z0-9]{2})/, "").replace(/[A-Z]$/, "");
+  if (!core) return "";
+  const guess = normalizeSetCode(core);
+  const loose = (s) => [...s].map((c) => (/[A-Za-z]/.test(c) && DIGIT_LOOKALIKE[c] ? DIGIT_LOOKALIKE[c] : c)).join("").toLowerCase();
+  const exact = known.find((k) => loose(k) === loose(guess));
+  if (exact) return exact;
+  const tail = loose(guess).slice(-2);
+  const byTail = tail.length === 2 ? known.filter((k) => loose(k).endsWith(tail)) : [];
+  if (byTail.length === 1) return byTail[0];
+  return /^[A-Z]{1,3}\d{1,2}[a-z]?$/.test(guess) ? guess : "";
+}
+
 export function parseDex(text) {
   const m = text.normalize("NFKC").match(/N[o0O]\s*[.,:]?\s*(\d{3,4})\b/);
   const dex = m ? Number(m[1]) : 0;
