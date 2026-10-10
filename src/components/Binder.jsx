@@ -113,10 +113,29 @@ function Binder({ onOpenSet, onOpenRarity, onOpenTag, onOpenCard, onOpenPokemon,
             )}
           </label>
 
+          {!query && (rarities.length > 0 || tags.length > 0) && (
+            <div className="home-pills">
+              {rarities.map(([r, n]) => (
+                <button key={r} type="button" className="pill" onClick={() => onOpenRarity(r)}>
+                  {r}
+                  <span>{n}</span>
+                </button>
+              ))}
+              {tags.map(([t, n]) => (
+                <button key={t} type="button" className="pill is-tag" onClick={() => onOpenTag(t)}>
+                  {t}
+                  <span>{n}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
           {query ? (
-            <section className="section">
-              <h2 className="section-title">{results.length ? `找到 ${results.length} 張` : "沒有符合的卡片"}</h2>
-              <div className="card-grid">
+            <section className="section panel home-fill">
+              <div className="panel-head">
+                <h2 className="section-title">{results.length ? `找到 ${results.length} 張` : "沒有符合的卡片"}</h2>
+              </div>
+              <div className="card-grid home-scroll">
                 {results.map((c) => (
                   <button key={c.id} type="button" className="grid-card" onClick={() => onOpenCard(c, results)}>
                     <Photo blob={c.photo} className="card-img" alt={c.name} />
@@ -145,12 +164,12 @@ function Binder({ onOpenSet, onOpenRarity, onOpenTag, onOpenCard, onOpenPokemon,
                 </div>
               </section>
 
-              <section className="section panel">
+              <section className="section panel home-fill">
                 <div className="panel-head">
                   <h2 className="section-title">卡冊</h2>
                   <span className="panel-meta">{sets.length} 本</span>
                 </div>
-                <ul className="albums">
+                <ul className="albums home-scroll">
                   {sets.map((g) => (
                     <li key={g.key}>
                       <button type="button" className="album" onClick={() => onOpenSet(g.key)}>
@@ -185,27 +204,6 @@ function Binder({ onOpenSet, onOpenRarity, onOpenTag, onOpenCard, onOpenPokemon,
                 </ul>
               </section>
 
-              {(rarities.length > 0 || tags.length > 0) && (
-                <section className="section panel">
-                  <div className="panel-head">
-                    <h2 className="section-title">分類</h2>
-                  </div>
-                  <div className="pills">
-                    {rarities.map(([r, n]) => (
-                      <button key={r} type="button" className="pill" onClick={() => onOpenRarity(r)}>
-                        {r}
-                        <span>{n}</span>
-                      </button>
-                    ))}
-                    {tags.map(([t, n]) => (
-                      <button key={t} type="button" className="pill is-tag" onClick={() => onOpenTag(t)}>
-                        {t}
-                        <span>{n}</span>
-                      </button>
-                    ))}
-                  </div>
-                </section>
-              )}
             </>
           )}
         </>

@@ -29,6 +29,13 @@
   }
 }
 
+html:has(.page.home),
+html:has(.page.home) body,
+html:has(.page.is-fit),
+html:has(.page.is-fit) body {
+  overscroll-behavior-y: none;
+}
+
 body {
   margin: 0;
   background: var(--bg) linear-gradient(180deg, #f8f7fc, var(--bg) 380px) no-repeat;
@@ -2011,4 +2018,139 @@ p {
 
 .photo.is-empty {
   display: block;
+}
+
+.page.home {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-height: 0;
+  padding-bottom: calc(92px + env(safe-area-inset-bottom));
+  overflow: hidden;
+}
+
+.home .home-head {
+  flex: none;
+  padding: calc(16px + env(safe-area-inset-top)) 0 12px;
+}
+
+.home .home-head h1 {
+  font-size: 30px;
+}
+
+.home .hero {
+  flex: none;
+  padding: 12px 0 14px;
+}
+
+.home .stats {
+  margin-top: 6px;
+}
+
+.home .stats strong {
+  font-size: 30px;
+}
+
+.home .search {
+  flex: none;
+  margin-top: 12px;
+}
+
+.home-pills {
+  display: flex;
+  flex: none;
+  gap: 8px;
+  margin: 12px -20px 0;
+  padding: 2px 20px 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.home-pills::-webkit-scrollbar {
+  display: none;
+}
+
+.home-pills .pill {
+  flex: none;
+  padding: 6px 13px;
+  font-size: 14px;
+}
+
+.home .panel {
+  flex: none;
+  margin-top: 12px;
+  padding: 14px 16px 16px;
+}
+
+.home .panel-head {
+  margin-bottom: 10px;
+}
+
+.home .panel .rail {
+  margin: 0 -16px;
+  padding: 2px 16px 4px;
+  scroll-padding-inline: 16px;
+}
+
+.home .rail-card {
+  flex-basis: 92px;
+}
+
+.home .rail-name {
+  margin-top: 7px;
+  font-size: 12px;
+}
+
+.home .home-fill {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.home .home-fill .panel-head {
+  flex: none;
+}
+
+.home .home-scroll {
+  flex: 1;
+  min-height: 0;
+  margin: 0 -16px;
+  padding: 0 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.home .welcome {
+  flex: 1;
+  align-content: center;
+  padding-top: 0;
+}
+
+
+@media (max-height: 740px) {
+  .home .eyebrow {
+    display: none;
+  }
+
+  .home .hero {
+    padding: 10px 0;
+  }
+
+  .home .stats {
+    margin-top: 0;
+  }
+
+  .home .stats strong {
+    font-size: 26px;
+  }
+
+  .home .rail-card {
+    flex-basis: 68px;
+  }
+
+  .home .rail-name {
+    display: none;
+  }
 }
