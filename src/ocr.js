@@ -1,8 +1,8 @@
 import { parseCode, matchName, parseDex, detectLang, nameOfDex, parseSetCode } from "./parse";
 import { detectCard, warpCard, expandQuad } from "./cardDetect";
 
-const DETECT_W = 320;
-const LIVE_W = 240;
+const DETECT_W = 240;
+const LIVE_CANDIDATES = 30;
 const CARD_W = 900;
 const CARD_H = Math.round((CARD_W * 88) / 63);
 
@@ -44,32 +44,29 @@ export const isReady = () => ready;
 
 const toBuffer = async (canvas) => (await new Promise((r) => canvas.toBlob(r, "image/jpeg", 0.9))).arrayBuffer();
 
-function grayOf(source, [x, y, w, h], sw) {
+function pixelsOf(source, [x, y, w, h], sw) {
   const sh = Math.round((h * sw) / w);
   const small = document.createElement("canvas");
   small.width = sw;
   small.height = sh;
   const ctx = small.getContext("2d", { willReadFrequently: true });
   ctx.drawImage(source, x, y, w, h, 0, 0, sw, sh);
-  const px = ctx.getImageData(0, 0, sw, sh).data;
-  const gray = new Float32Array(sw * sh);
-  for (let i = 0; i < gray.length; i++) gray[i] = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
-  return { gray, sw, sh };
+  return { rgba: ctx.getImageData(0, 0, sw, sh).data, sw, sh };
 }
 
 export function locate(source, rect) {
-  const { gray, sw, sh } = grayOf(source, rect, LIVE_W);
-  const quad = detectCard(gray, sw, sh);
+  const { rgba, sw, sh } = pixelsOf(source, rect, DETECT_W);
+  const quad = detectCard(rgba, sw, sh, LIVE_CANDIDATES);
   return quad && quad.map(([x, y]) => [x / sw, y / sh]);
 }
 
 export function straighten(frame) {
-  const { gray, sw } = grayOf(frame, [0, 0, frame.width, frame.height], DETECT_W);
-  const quad = detectCard(gray, sw, Math.round((frame.height * sw) / frame.width));
+  const { rgba, sw, sh } = pixelsOf(frame, [0, 0, frame.width, frame.height], DETECT_W);
+  const quad = detectCard(rgba, sw, sh);
   if (!quad) return null;
   const s = frame.width / sw;
   const src = frame.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, frame.width, frame.height).data;
-  const out = warpCard(src, frame.width, frame.height, expandQuad(quad.map(([x, y]) => [x * s, y * s]), 0.03), CARD_W, CARD_H);
+  const out = warpCard(src, frame.width, frame.height, expandQuad(quad.map(([x, y]) => [x * s, y * s]), 0.015), CARD_W, CARD_H);
   const c = document.createElement("canvas");
   c.width = CARD_W;
   c.height = CARD_H;

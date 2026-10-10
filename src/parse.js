@@ -163,18 +163,3 @@ export const nameOfDex = (dex, lang) => {
   const row = NAMES.find((r) => r[0] === dex);
   return row ? row[LANG_INDEX[lang] || 1] : "";
 };
-
-export function missingNumbers(total, owned) {
-  const have = new Set(owned);
-  const ranges = [];
-  let start = null;
-  for (let n = 1; n <= total + 1; n++) {
-    const missing = n <= total && !have.has(n);
-    if (missing && start === null) start = n;
-    if (!missing && start !== null) {
-      ranges.push(start === n - 1 ? `${start}` : `${start}-${n - 1}`);
-      start = null;
-    }
-  }
-  return ranges;
-}

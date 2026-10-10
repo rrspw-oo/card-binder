@@ -383,10 +383,12 @@ p {
 .pocket.is-empty {
   display: grid;
   place-items: center;
+  background: #f6f6f6;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 
 .pocket-no {
-  color: #b5b5b5;
+  color: #c4c4c4;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
@@ -444,21 +446,10 @@ p {
   opacity: 0.3;
 }
 
-.missing {
-  margin-top: 24px;
-}
-
-.missing h2,
 .tags h2 {
   margin-bottom: 6px;
   font-size: 14px;
   font-weight: 600;
-}
-
-.missing p {
-  font-size: 13px;
-  line-height: 1.7;
-  word-break: break-all;
 }
 
 .detail {
@@ -553,6 +544,44 @@ p {
 .editor {
   display: grid;
   gap: 12px;
+}
+
+.confirm {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding-top: 8px;
+  text-align: center;
+}
+
+.confirm-photo {
+  width: min(72%, 300px);
+  margin-bottom: 14px;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.confirm-name {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.confirm-name.is-empty {
+  color: var(--soft);
+  font-size: 18px;
+  font-weight: 400;
+}
+
+.confirm-meta {
+  color: var(--soft);
+  font-size: 15px;
+}
+
+.confirm-ask {
+  width: 100%;
+  margin-top: 18px;
+  text-align: left;
 }
 
 .editor-photo {

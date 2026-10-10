@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { db } from "../db";
 import { useLive } from "../useLive";
-import { LANGS, RARITIES, SET_NAMES, missingNumbers } from "../parse";
+import { LANGS, RARITIES, SET_NAMES } from "../parse";
 import BinderPages from "./BinderPages";
 
 const LANG_LABEL = Object.fromEntries(LANGS);
@@ -33,7 +33,6 @@ function ListView({ kind, value, onBack, backLabel, onOpen }) {
   const rarities = useMemo(() => [...RARITIES, ""].filter((r) => cards?.some((c) => (c.rarity || "") === r)), [cards]);
   const total = kind === "set" ? Number(cards?.[0]?.total) || 0 : 0;
   const owned = cards?.map((c) => Number(c.number)).filter((n) => n && n <= total) || [];
-  const missing = total ? missingNumbers(total, owned) : [];
   const ownedCount = new Set(owned).size;
   const slots = useMemo(() => {
     if (kind === "set" && total && rarity === null) {
@@ -44,6 +43,7 @@ function ListView({ kind, value, onBack, backLabel, onOpen }) {
     }
     return sorted.map((c) => ({ key: `c${c.id}`, label: c.number, card: c }));
   }, [kind, total, rarity, sorted]);
+  const newest = slots.reduce((best, slot, i) => (slot.card && (best < 0 || slot.card.createdAt > slots[best].card.createdAt) ? i : best), -1);
 
   return (
     <div className="page">
@@ -73,13 +73,7 @@ function ListView({ kind, value, onBack, backLabel, onOpen }) {
           ))}
         </div>
       )}
-      <BinderPages slots={slots} onOpen={onOpen} />
-      {missing.length > 0 && rarity === null && (
-        <section className="missing">
-          <h2>還缺 {total - ownedCount} 張</h2>
-          <p className="muted">{missing.join("、")}</p>
-        </section>
-      )}
+      <BinderPages slots={slots} start={newest} onOpen={onOpen} />
     </div>
   );
 }

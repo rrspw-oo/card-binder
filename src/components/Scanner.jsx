@@ -5,7 +5,7 @@ import { db } from "../db";
 const CARD_W = 630;
 const CARD_H = 880;
 const OCR_MAX_W = 1000;
-const LIVE_MS = 400;
+const LIVE_MS = 600;
 
 function mapFrame(frame, box, naturalW, naturalH) {
   const sx = naturalW / box.width;

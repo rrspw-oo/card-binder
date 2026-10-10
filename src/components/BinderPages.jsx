@@ -3,9 +3,10 @@ import Photo from "./Photo";
 
 const PER_PAGE = 9;
 
-function BinderPages({ slots, onOpen }) {
+function BinderPages({ slots, start, onOpen }) {
   const ref = useRef(null);
   const [page, setPage] = useState(0);
+  const opened = useRef(false);
   const pages = [];
   for (let i = 0; i < slots.length; i += PER_PAGE) pages.push(slots.slice(i, i + PER_PAGE));
 
@@ -16,6 +17,15 @@ function BinderPages({ slots, onOpen }) {
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (opened.current || !el || start < 0) return;
+    opened.current = true;
+    const target = Math.floor(start / PER_PAGE);
+    el.scrollLeft = target * el.clientWidth;
+    setPage(target);
+  }, [start]);
 
   const turn = (delta) => {
     const el = ref.current;
