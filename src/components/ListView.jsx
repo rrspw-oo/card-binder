@@ -75,6 +75,15 @@ function ListView({ kind, value, onBack, backLabel, onOpen }) {
           </div>
           {total > 0 && (
             <svg className="ring" viewBox="0 0 64 64" aria-label={`已收 ${ownedCount} / ${total}`}>
+              <defs>
+                <linearGradient id="ring-holo" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stopColor="#ff9fd2" />
+                  <stop offset="0.3" stopColor="#ffd27f" />
+                  <stop offset="0.55" stopColor="#8eeccd" />
+                  <stop offset="0.8" stopColor="#8cc4ff" />
+                  <stop offset="1" stopColor="#c9a0ff" />
+                </linearGradient>
+              </defs>
               <circle cx="32" cy="32" r="27" className="ring-track" />
               <circle cx="32" cy="32" r="27" className="ring-fill" pathLength="100" strokeDasharray={`${Math.max(1, (ownedCount / total) * 100)} 100`} />
               <text x="32" y="33" className="ring-text">

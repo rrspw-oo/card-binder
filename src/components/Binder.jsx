@@ -86,7 +86,9 @@ function Binder({ onOpenSet, onOpenRarity, onOpenTag, onOpenCard, onOpenPokemon,
         </div>
       ) : (
         <>
-          <section className="stats">
+          <section className="hero">
+            <p className="eyebrow">收藏總覽</p>
+            <div className="stats">
             <div>
               <strong>{stats.copies}</strong>
               <span>張卡</span>
@@ -98,6 +100,7 @@ function Binder({ onOpenSet, onOpenRarity, onOpenTag, onOpenCard, onOpenPokemon,
             <div>
               <strong>{stats.sets}</strong>
               <span>個系列</span>
+            </div>
             </div>
           </section>
 
@@ -128,8 +131,11 @@ function Binder({ onOpenSet, onOpenRarity, onOpenTag, onOpenCard, onOpenPokemon,
             </section>
           ) : (
             <>
-              <section className="section">
-                <h2 className="section-title">最近收進</h2>
+              <section className="section panel">
+                <div className="panel-head">
+                  <h2 className="section-title">最近收進</h2>
+                  <span className="panel-meta">{recent.length} 張</span>
+                </div>
                 <div className="rail">
                   {recent.map((c) => (
                     <button key={c.id} type="button" className="rail-card" onClick={() => onOpenCard(c, recent)}>
@@ -140,8 +146,11 @@ function Binder({ onOpenSet, onOpenRarity, onOpenTag, onOpenCard, onOpenPokemon,
                 </div>
               </section>
 
-              <section className="section">
-                <h2 className="section-title">卡冊</h2>
+              <section className="section panel">
+                <div className="panel-head">
+                  <h2 className="section-title">卡冊</h2>
+                  <span className="panel-meta">{sets.length} 本</span>
+                </div>
                 <ul className="albums">
                   {sets.map((g) => (
                     <li key={g.key}>
@@ -178,8 +187,10 @@ function Binder({ onOpenSet, onOpenRarity, onOpenTag, onOpenCard, onOpenPokemon,
               </section>
 
               {(rarities.length > 0 || tags.length > 0) && (
-                <section className="section">
-                  <h2 className="section-title">分類</h2>
+                <section className="section panel">
+                  <div className="panel-head">
+                    <h2 className="section-title">分類</h2>
+                  </div>
                   <div className="pills">
                     {rarities.map(([r, n]) => (
                       <button key={r} type="button" className="pill" onClick={() => onOpenRarity(r)}>

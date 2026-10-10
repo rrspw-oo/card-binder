@@ -12,6 +12,7 @@
   --shadow-card: 0 0 0 1px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.1), 0 6px 18px rgba(0, 0, 0, 0.1);
   --shadow-panel: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.05), 0 6px 18px rgba(0, 0, 0, 0.05);
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --holo: linear-gradient(110deg, #ff9fd2, #ffd27f 25%, #8eeccd 50%, #8cc4ff 75%, #c9a0ff);
   color-scheme: light;
   font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
   -webkit-tap-highlight-color: transparent;
@@ -30,7 +31,7 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  background: var(--bg) linear-gradient(180deg, #f8f7fc, var(--bg) 380px) no-repeat;
   color: var(--ink);
   font-size: 15px;
   line-height: 1.5;
@@ -91,7 +92,9 @@ p {
   .sheet-backdrop,
   .tilt-inner,
   .confirm-photo,
-  .scanner-toast {
+  .scanner-toast,
+  .hero,
+  .cover {
     animation: none !important;
   }
 
@@ -216,13 +219,46 @@ p {
   box-shadow: var(--shadow-panel);
 }
 
+@keyframes holo-drift {
+  to {
+    background-position:
+      0 0,
+      200% 0;
+  }
+}
+
+.hero,
+.cover {
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    var(--holo) border-box;
+  background-size:
+    100% 100%,
+    200% 100%;
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.04),
+    0 14px 34px rgba(140, 110, 200, 0.14);
+  animation: holo-drift 8s linear infinite;
+}
+
+.hero {
+  padding: 16px 0 20px;
+  border-radius: 24px;
+}
+
+.eyebrow {
+  padding: 0 20px;
+  color: var(--soft);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
 .stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  padding: 18px 0;
-  border-radius: 20px;
-  background: var(--surface);
-  box-shadow: var(--shadow-panel);
+  margin-top: 10px;
 }
 
 .stats > * {
@@ -240,7 +276,7 @@ p {
 }
 
 .stats strong {
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
@@ -256,8 +292,8 @@ p {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 44px;
-  margin-top: 16px;
+  height: 46px;
+  margin-top: 14px;
   padding: 0 12px;
   border-radius: 12px;
   background: var(--surface);
@@ -290,6 +326,64 @@ p {
   border-radius: 50%;
   background: var(--faint);
   color: #fff;
+}
+
+.panel {
+  margin-top: 14px;
+  padding: 16px 18px 18px;
+  border-radius: 24px;
+  background: var(--surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.panel .section-title {
+  margin: 0;
+  font-size: 19px;
+}
+
+.panel-meta {
+  color: var(--soft);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.panel .rail {
+  margin: 0 -18px;
+  padding: 4px 18px 6px;
+  scroll-padding-inline: 18px;
+}
+
+.panel .albums {
+  gap: 0;
+}
+
+.panel .album {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.panel li:first-child .album {
+  padding-top: 2px;
+}
+
+.panel li:last-child .album {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.panel .pill {
+  background: var(--bg);
+  box-shadow: none;
 }
 
 .rail {
@@ -442,7 +536,8 @@ p {
   display: block;
   height: 100%;
   border-radius: 3px;
-  background: var(--ink);
+  background: var(--holo);
+  background-size: 300px 100%;
 }
 
 .pills {
@@ -529,7 +624,19 @@ p {
   pointer-events: none;
 }
 
+.scan-button::before {
+  content: "";
+  position: absolute;
+  inset: 2px 10px -4px;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--holo);
+  filter: blur(14px);
+  opacity: 0.75;
+}
+
 .scan-button {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -601,9 +708,7 @@ p {
   gap: 16px;
   margin: 6px 0 18px;
   padding: 20px 20px 20px 22px;
-  border-radius: 22px;
-  background: var(--surface);
-  box-shadow: var(--shadow-panel);
+  border-radius: 24px;
   color: var(--ink);
 }
 
@@ -661,7 +766,7 @@ p {
 }
 
 .ring-fill {
-  stroke: var(--ink);
+  stroke: url(#ring-holo);
   stroke-linecap: round;
   transform: rotate(-90deg);
   transform-origin: 32px 32px;
