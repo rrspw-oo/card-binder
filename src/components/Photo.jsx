@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
+import { photoBlob } from "../db";
 
 function Photo({ blob, className = "", alt = "" }) {
   const [url, setUrl] = useState(null);
 
   useEffect(() => {
     if (!blob) return;
-    const next = URL.createObjectURL(blob);
+    const next = URL.createObjectURL(photoBlob(blob));
     setUrl(next);
     return () => URL.revokeObjectURL(next);
   }, [blob]);

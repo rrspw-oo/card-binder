@@ -52,7 +52,13 @@ function App() {
 
   const onSave = async (form, next) => {
     const editing = Boolean(draft.current.card.id);
-    const { merged } = await saveCard(form);
+    let merged;
+    try {
+      ({ merged } = await saveCard(form));
+    } catch (err) {
+      setToast(`儲存失敗：${err?.name || ""} ${err?.message || err}`);
+      return;
+    }
     draft.current = null;
     if (editing) {
       back();
