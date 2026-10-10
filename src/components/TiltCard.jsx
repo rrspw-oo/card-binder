@@ -1,8 +1,8 @@
 import { useRef, useState } from "react";
 import Photo from "./Photo";
+import { isPremium } from "../parse";
 
 const MAX_TILT = 16;
-const PREMIUM = new Set(["RR", "RRR", "AR", "SAR", "SR", "UR", "HR", "ACE"]);
 const SPARKS = [
   [22, 18, 0],
   [74, 30, 120],
@@ -13,7 +13,7 @@ const SPARKS = [
 ];
 
 function TiltCard({ blob, rarity = "", className = "", alt = "" }) {
-  const premium = PREMIUM.has(rarity);
+  const premium = isPremium(rarity);
   const ref = useRef(null);
   const [active, setActive] = useState(false);
 

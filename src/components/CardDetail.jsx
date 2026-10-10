@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { db } from "../db";
 import { useLive } from "../useLive";
-import { LANGS } from "../parse";
+import { LANGS, SET_NAMES, isPremium } from "../parse";
 import TiltCard from "./TiltCard";
 import PageHead from "./PageHead";
 import Icon from "./Icon";
@@ -47,27 +47,35 @@ function CardDetail({ id, onBack, backLabel, onEdit, onOpenPokemon, onOpenSet })
         }
       />
       <div className="detail">
-        <TiltCard key={card.id} blob={card.photo} rarity={card.rarity} className="detail-photo" alt={card.name} />
-        {card.name ? (
-          <button type="button" className="detail-name" onClick={() => onOpenPokemon(card)}>
-            {card.name}
-          </button>
-        ) : (
-          <p className="detail-name is-empty">未填卡名</p>
-        )}
-        <p className="detail-sub">
-          {card.setCode} {card.number}
-          {card.total ? ` / ${card.total}` : ""}
-          {card.rarity ? `・${card.rarity}` : ""}
-        </p>
+        <article className={isPremium(card.rarity) ? "slab is-premium" : "slab"}>
+          <header className="slab-label">
+            <div className="slab-title">
+              {card.name ? (
+                <button type="button" className="slab-name" onClick={() => onOpenPokemon(card)}>
+                  {card.name}
+                </button>
+              ) : (
+                <span className="slab-name is-empty">未填卡名</span>
+              )}
+              <button type="button" className="slab-set" onClick={() => onOpenSet(card.setKey)}>
+                {card.setCode}
+                {card.lang === "zh" && SET_NAMES[card.setCode] ? `・${SET_NAMES[card.setCode]}` : `・${LANG_LABEL[card.lang]}`}
+                <Icon name="forward" size={13} />
+              </button>
+            </div>
+            <div className="slab-grade">
+              <span className="slab-no">
+                <strong>{card.number}</strong>
+                {card.total ? <small>/ {card.total}</small> : null}
+              </span>
+              {card.rarity && <span className="slab-rarity">{card.rarity}</span>}
+            </div>
+          </header>
+          <div className="slab-well">
+            <TiltCard key={card.id} blob={card.photo} rarity={card.rarity} className="slab-card" alt={card.name} />
+          </div>
+        </article>
         <div className="group">
-          <button type="button" className="group-row" onClick={() => onOpenSet(card.setKey)}>
-            <span>系列</span>
-            <span className="group-value">
-              {card.setCode}・{LANG_LABEL[card.lang]}
-            </span>
-            <Icon name="forward" size={16} />
-          </button>
           <div className="group-row">
             <span>數量</span>
             <span className="stepper">

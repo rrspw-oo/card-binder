@@ -2,6 +2,10 @@ import NAMES from "./data/names.json";
 import SETS_ZH from "./data/sets-zh.json";
 
 export const RARITIES = ["C", "U", "R", "RR", "RRR", "AR", "SAR", "SR", "UR", "HR", "ACE", "PR"];
+
+const PREMIUM = new Set(["RR", "RRR", "AR", "SAR", "SR", "UR", "HR", "ACE"]);
+
+export const isPremium = (rarity) => PREMIUM.has(rarity);
 export const LANGS = [
   ["zh", "繁中"],
   ["ja", "日文"],
