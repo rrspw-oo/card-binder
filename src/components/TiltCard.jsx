@@ -2,8 +2,18 @@ import { useRef, useState } from "react";
 import Photo from "./Photo";
 
 const MAX_TILT = 16;
+const PREMIUM = new Set(["RR", "RRR", "AR", "SAR", "SR", "UR", "HR", "ACE"]);
+const SPARKS = [
+  [22, 18, 0],
+  [74, 30, 120],
+  [40, 55, 240],
+  [80, 70, 360],
+  [28, 82, 480],
+  [58, 12, 560],
+];
 
-function TiltCard({ blob, className = "", alt = "" }) {
+function TiltCard({ blob, rarity = "", className = "", alt = "" }) {
+  const premium = PREMIUM.has(rarity);
   const ref = useRef(null);
   const [active, setActive] = useState(false);
 
@@ -42,6 +52,18 @@ function TiltCard({ blob, className = "", alt = "" }) {
     >
       <div className="tilt-inner">
         <Photo blob={blob} className="card-img" alt={alt} />
+        {premium ? (
+          <>
+            <span className="shine-holo" aria-hidden="true" />
+            <span className="shine-ring" aria-hidden="true" />
+          </>
+        ) : (
+          <span className="shine-sparks" aria-hidden="true">
+            {SPARKS.map(([x, y, delay]) => (
+              <span key={`${x}-${y}`} style={{ left: `${x}%`, top: `${y}%`, animationDelay: `${delay + 300}ms` }} />
+            ))}
+          </span>
+        )}
         <span className="tilt-glare" aria-hidden="true" />
       </div>
     </div>

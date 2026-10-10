@@ -47,7 +47,7 @@ function CardDetail({ id, onBack, backLabel, onEdit, onOpenPokemon, onOpenSet })
         }
       />
       <div className="detail">
-        <TiltCard blob={card.photo} className="detail-photo" alt={card.name} />
+        <TiltCard key={card.id} blob={card.photo} rarity={card.rarity} className="detail-photo" alt={card.name} />
         {card.name ? (
           <button type="button" className="detail-name" onClick={() => onOpenPokemon(card)}>
             {card.name}

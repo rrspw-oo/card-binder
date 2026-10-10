@@ -86,10 +86,18 @@ p {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  .page,
+  .sheet-panel,
+  .sheet-backdrop,
+  .tilt-inner,
+  .confirm-photo,
+  .scanner-toast {
     animation: none !important;
+  }
+
+  .tilt-inner,
+  .dots button,
+  .corner {
     transition: none !important;
   }
 }
@@ -759,6 +767,107 @@ p {
 
 .tilt.is-active .tilt-glare {
   opacity: 1;
+}
+
+@property --shine-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.shine-holo {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--card-radius);
+  background: linear-gradient(115deg, transparent 15%, rgba(255, 60, 160, 0.55) 30%, rgba(255, 210, 40, 0.55) 42%, rgba(40, 255, 180, 0.55) 54%, rgba(40, 170, 255, 0.55) 66%, rgba(170, 60, 255, 0.55) 78%, transparent 92%) no-repeat;
+  background-size: 300% 100%;
+  background-position: 150% 0;
+  mix-blend-mode: color-dodge;
+  opacity: 0;
+  pointer-events: none;
+  animation: shine-holo 1.5s 0.25s ease-in-out both;
+}
+
+@keyframes shine-holo {
+  0% {
+    background-position: 150% 0;
+    opacity: 0;
+  }
+  20%,
+  80% {
+    opacity: 0.9;
+  }
+  100% {
+    background-position: -50% 0;
+    opacity: 0;
+  }
+}
+
+.shine-ring {
+  position: absolute;
+  inset: -5px;
+  padding: 5px;
+  border-radius: 6.6% / 4.8%;
+  background: conic-gradient(from var(--shine-angle), transparent 0deg, transparent 230deg, rgba(255, 196, 80, 0.25) 280deg, #ffd27a 330deg, #fff 350deg, transparent 360deg);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  filter: drop-shadow(0 0 10px rgb(255, 190, 70)) drop-shadow(0 0 3px rgba(255, 170, 40, 0.9));
+  opacity: 0;
+  pointer-events: none;
+  animation: shine-orbit 1.3s 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes shine-orbit {
+  0% {
+    --shine-angle: 0deg;
+    opacity: 0;
+  }
+  15%,
+  85% {
+    opacity: 1;
+  }
+  100% {
+    --shine-angle: 360deg;
+    opacity: 0;
+  }
+}
+
+.shine-sparks {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: var(--card-radius);
+  pointer-events: none;
+}
+
+.shine-sparks span {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin: -9px;
+  background: #fff;
+  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+  filter: drop-shadow(0 0 4px #fff);
+  opacity: 0;
+  animation: shine-twinkle 0.7s ease-out both;
+}
+
+@keyframes shine-twinkle {
+  0% {
+    transform: scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  40% {
+    transform: scale(1.1) rotate(45deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0) rotate(90deg);
+    opacity: 0;
+  }
 }
 
 @keyframes tilt-hint {

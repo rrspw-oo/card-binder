@@ -169,7 +169,7 @@ function CardEditor({ card, result, onSave, onCancel, sheet = false }) {
             </div>
           ) : (
             <div className="confirm">
-              <TiltCard blob={form.photo} className="confirm-photo" />
+              <TiltCard blob={form.photo} rarity={form.rarity} className="confirm-photo" />
               <h2 className={form.name ? "confirm-name" : "confirm-name is-empty"}>{form.name || "沒有讀到卡名"}</h2>
               {meta.length > 0 && <p className="confirm-meta">{meta.join("・")}</p>}
               {!ask.set && result?.setCandidates?.length > 0 && <div className="confirm-alt">{setChips}</div>}
