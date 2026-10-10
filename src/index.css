@@ -603,11 +603,9 @@ p {
   margin: 6px 0 18px;
   padding: 20px 20px 20px 22px;
   border-radius: 22px;
-  background: linear-gradient(150deg, #2c2c31, #151518);
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.2),
-    0 12px 30px rgba(0, 0, 0, 0.22);
-  color: #fff;
+  background: var(--surface);
+  box-shadow: var(--shadow-panel);
+  color: var(--ink);
 }
 
 .cover-text {
@@ -624,7 +622,7 @@ p {
 .cover-name {
   margin-top: 4px;
   overflow: hidden;
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--soft);
   font-size: 14px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -637,7 +635,7 @@ p {
 }
 
 .cover-stats dt {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--soft);
   font-size: 12px;
 }
 
@@ -660,18 +658,18 @@ p {
 }
 
 .ring-track {
-  stroke: rgba(255, 255, 255, 0.14);
+  stroke: var(--tint);
 }
 
 .ring-fill {
-  stroke: #fff;
+  stroke: var(--ink);
   stroke-linecap: round;
   transform: rotate(-90deg);
   transform-origin: 32px 32px;
 }
 
 .ring-text {
-  fill: #fff;
+  fill: var(--ink);
   font-size: 14px;
   font-weight: 700;
   text-anchor: middle;
