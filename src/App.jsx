@@ -5,9 +5,10 @@ import CardDetail from "./components/CardDetail";
 import Scanner from "./components/Scanner";
 import CardEditor from "./components/CardEditor";
 import Backup from "./components/Backup";
+import PokemonList from "./components/PokemonList";
 import { saveCard } from "./db";
 
-const HOME = { name: "binder", tab: "sets" };
+const HOME = { name: "binder" };
 
 function App() {
   const [view, setView] = useState(() => (window.history.state?.name ? window.history.state : HOME));
@@ -40,55 +41,39 @@ function App() {
   const openList = (kind, value, backLabel) => go({ name: "list", kind, value, backLabel });
   const openCard = (card, backLabel) => go({ name: "card", id: card.id, backLabel });
 
-  const onCaptured = ({ photo, result }) => {
-    draft.current = { card: { photo }, result };
-    go({ name: "edit" });
-  };
-
   const editCard = (card) => {
     draft.current = { card, result: null };
     go({ name: "edit" });
   };
 
-  const onSave = async (form, next) => {
-    const editing = Boolean(draft.current.card.id);
-    let merged;
+  const onSave = async (form) => {
     try {
-      ({ merged } = await saveCard(form));
+      await saveCard(form);
     } catch (err) {
       setToast(`儲存失敗：${err?.name || ""} ${err?.message || err}`);
       return;
     }
     draft.current = null;
-    if (editing) {
-      back();
-      return;
-    }
-    setToast(merged ? "已經有這張卡，數量加 1" : "已加入卡冊");
-    if (next === "scan") back();
-    else window.history.go(-2);
+    back();
   };
 
-  if (view.name === "scan") return <Scanner onCaptured={onCaptured} onClose={back} />;
+  if (view.name === "scan") return <Scanner onClose={back} />;
 
   return (
     <>
       {view.name === "binder" && (
         <Binder
-          tab={view.tab}
-          onTab={(tab) => {
-            window.history.replaceState({ ...view, tab }, "");
-            setView({ ...view, tab });
-          }}
-          onOpenSet={(key) => openList("set", key, "卡冊")}
-          onOpenRarity={(r) => openList("rarity", r, "卡冊")}
-          onOpenTag={(t) => openList("tag", t, "卡冊")}
+          onOpenSet={(key) => openList("set", key, "收藏")}
+          onOpenRarity={(r) => openList("rarity", r, "收藏")}
+          onOpenTag={(t) => openList("tag", t, "收藏")}
+          onOpenCard={(card) => openCard(card, "收藏")}
+          onOpenPokemon={() => go({ name: "pokemon" })}
           onScan={() => go({ name: "scan" })}
           onBackup={() => go({ name: "backup" })}
         />
       )}
       {view.name === "list" && (
-        <ListView kind={view.kind} value={view.value} backLabel={view.backLabel} onBack={back} onOpen={(card) => openCard(card, "返回")} />
+        <ListView kind={view.kind} value={view.value} backLabel={view.backLabel} onBack={back} onOpen={(card, label) => openCard(card, label)} />
       )}
       {view.name === "card" && (
         <CardDetail
@@ -103,6 +88,7 @@ function App() {
       {view.name === "edit" && draft.current && (
         <CardEditor card={draft.current.card} result={draft.current.result} onSave={onSave} onCancel={back} />
       )}
+      {view.name === "pokemon" && <PokemonList onBack={back} onOpen={(card) => openList(card.dex ? "dex" : "name", { dex: card.dex, name: card.name }, "寶可夢")} />}
       {view.name === "backup" && <Backup onBack={back} />}
       {toast && <div className="toast">{toast}</div>}
     </>

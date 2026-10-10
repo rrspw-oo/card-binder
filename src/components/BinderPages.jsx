@@ -41,7 +41,7 @@ function BinderPages({ slots, start, onOpen }) {
               <div key={slot.key} className={`pocket ${slot.card ? "" : "is-empty"}`}>
                 {slot.card ? (
                   <button type="button" className="pocket-card" onClick={() => onOpen(slot.card)}>
-                    <Photo blob={slot.card.photo} alt={slot.card.name || slot.label} />
+                    <Photo blob={slot.card.photo} className="card-img" alt={slot.card.name || slot.label} />
                     {slot.card.qty > 1 && <span className="pocket-qty">{slot.card.qty}</span>}
                   </button>
                 ) : (
@@ -55,18 +55,17 @@ function BinderPages({ slots, start, onOpen }) {
           </section>
         ))}
       </div>
-      {pages.length > 1 && (
-        <div className="binder-nav">
-          <button type="button" className="text-button" onClick={() => turn(-1)} disabled={page === 0}>
-            上一頁
-          </button>
-          <span className="muted">
-            {page + 1} / {pages.length}
-          </span>
-          <button type="button" className="text-button" onClick={() => turn(1)} disabled={page >= pages.length - 1}>
-            下一頁
-          </button>
+      {pages.length > 1 && pages.length <= 20 && (
+        <div className="dots" role="tablist">
+          {pages.map((_, p) => (
+            <button key={p} type="button" role="tab" aria-label={`第 ${p + 1} 頁`} aria-selected={p === page} className={p === page ? "is-on" : ""} onClick={() => turn(p - page)} />
+          ))}
         </div>
+      )}
+      {pages.length > 1 && (
+        <p className="page-no">
+          {page + 1} / {pages.length}
+        </p>
       )}
     </div>
   );

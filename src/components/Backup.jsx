@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { exportBackup, importBackup } from "../db";
+import PageHead from "./PageHead";
 
 const formatMb = (n) => `${(n / 1024 / 1024).toFixed(1)} MB`;
 
@@ -40,30 +41,29 @@ function Backup({ onBack }) {
 
   return (
     <div className="page">
-      <header className="page-head">
-        <button type="button" className="text-button" onClick={onBack}>
-          卡冊
-        </button>
-        <h1>備份</h1>
-        <span />
-      </header>
+      <PageHead back="收藏" onBack={onBack} title="備份" />
       <div className="backup">
-        <p className="muted">卡片和照片只存在這支手機的瀏覽器裡。換手機或清除瀏覽器資料前，請先匯出備份檔。</p>
-        <button type="button" className="button" onClick={download}>
-          匯出備份檔
-        </button>
-        <label className="button is-ghost">
-          匯入備份檔
-          <input type="file" accept="application/json,.json" hidden onChange={upload} />
-        </label>
-        {message && <p>{message}</p>}
-        {usage && <p className="muted small">已使用 {formatMb(usage.usage)}</p>}
+        <p className="lead">卡片和照片只存在這支手機裡。換手機或清除瀏覽器資料前，先匯出備份檔。</p>
+        <div className="group">
+          <button type="button" className="group-row" onClick={download}>
+            <span>匯出備份檔</span>
+          </button>
+          <label className="group-row">
+            <span>匯入備份檔</span>
+            <span className="group-value">會取代目前的卡片</span>
+            <input type="file" accept="application/json,.json" hidden onChange={upload} />
+          </label>
+        </div>
+        {message && <p className="notice">{message}</p>}
+        <p className="muted small">
+          {usage ? `已使用 ${formatMb(usage.usage)}` : ""}
+          {persisted ? "，瀏覽器已同意保留資料" : ""}
+        </p>
         {persisted === false && navigator.storage?.persist && (
-          <button type="button" className="text-button" onClick={persist}>
+          <button type="button" className="head-action" onClick={persist}>
             要求瀏覽器保留資料，不要自動清除
           </button>
         )}
-        {persisted && <p className="muted small">瀏覽器已同意保留資料</p>}
       </div>
     </div>
   );

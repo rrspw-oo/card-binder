@@ -1,8 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { db } from "../db";
 import { useLive } from "../useLive";
-import { LANGS, RARITIES, SET_NAMES } from "../parse";
+import { LANGS, SET_NAMES } from "../parse";
 import BinderPages from "./BinderPages";
+import PageHead from "./PageHead";
+import Photo from "./Photo";
 
 const LANG_LABEL = Object.fromEntries(LANGS);
 const byNumber = (a, b) => (Number(a.number) || 0) - (Number(b.number) || 0) || a.number.localeCompare(b.number);
@@ -24,56 +26,65 @@ function titleOf(kind, value, cards) {
 
 function ListView({ kind, value, onBack, backLabel, onOpen }) {
   const cards = useLive(() => query(kind, value), [kind, JSON.stringify(value)]);
-  const [rarity, setRarity] = useState(null);
   const sorted = useMemo(() => {
     if (!cards) return [];
-    const list = kind === "set" ? [...cards].sort(byNumber) : [...cards].sort((a, b) => a.setCode.localeCompare(b.setCode) || byNumber(a, b));
-    return rarity === null ? list : list.filter((c) => (c.rarity || "") === rarity);
-  }, [cards, kind, rarity]);
-  const rarities = useMemo(() => [...RARITIES, ""].filter((r) => cards?.some((c) => (c.rarity || "") === r)), [cards]);
+    return kind === "set" ? [...cards].sort(byNumber) : [...cards].sort((a, b) => a.setCode.localeCompare(b.setCode) || byNumber(a, b));
+  }, [cards, kind]);
   const total = kind === "set" ? Number(cards?.[0]?.total) || 0 : 0;
-  const owned = cards?.map((c) => Number(c.number)).filter((n) => n && n <= total) || [];
-  const ownedCount = new Set(owned).size;
+  const ownedCount = new Set(sorted.map((c) => Number(c.number)).filter((n) => n && n <= total)).size;
   const slots = useMemo(() => {
-    if (kind === "set" && total && rarity === null) {
-      const byNo = new Map(sorted.map((c) => [Number(c.number), c]));
-      const fixed = Array.from({ length: total }, (_, i) => ({ key: `n${i + 1}`, label: String(i + 1).padStart(3, "0"), card: byNo.get(i + 1) || null }));
-      const extra = sorted.filter((c) => !(Number(c.number) >= 1 && Number(c.number) <= total)).map((c) => ({ key: `c${c.id}`, label: c.number, card: c }));
-      return [...fixed, ...extra];
-    }
-    return sorted.map((c) => ({ key: `c${c.id}`, label: c.number, card: c }));
-  }, [kind, total, rarity, sorted]);
+    if (!total) return sorted.map((c) => ({ key: `c${c.id}`, label: c.number, card: c }));
+    const byNo = new Map(sorted.map((c) => [Number(c.number), c]));
+    const fixed = Array.from({ length: total }, (_, i) => ({ key: `n${i + 1}`, label: String(i + 1).padStart(3, "0"), card: byNo.get(i + 1) || null }));
+    const extra = sorted.filter((c) => !(Number(c.number) >= 1 && Number(c.number) <= total)).map((c) => ({ key: `c${c.id}`, label: c.number, card: c }));
+    return [...fixed, ...extra];
+  }, [total, sorted]);
   const newest = slots.reduce((best, slot, i) => (slot.card && (best < 0 || slot.card.createdAt > slots[best].card.createdAt) ? i : best), -1);
+  const copies = sorted.reduce((sum, c) => sum + c.qty, 0);
+  const first = cards?.[0];
+  const title = titleOf(kind, value, cards);
+  const open = (card) => onOpen(card, title);
 
   return (
     <div className="page">
-      <header className="page-head">
-        <button type="button" className="text-button" onClick={onBack}>
-          {backLabel}
-        </button>
-        <h1>{titleOf(kind, value, cards)}</h1>
-        <span />
-      </header>
-      {kind === "set" && cards?.[0] && (
-        <p className="summary muted">
-          {cards[0].lang === "zh" && SET_NAMES[cards[0].setCode] ? `${SET_NAMES[cards[0].setCode]}，` : ""}
-          {LANG_LABEL[cards[0].lang]}
-          {total ? `，已收 ${ownedCount} / ${total}` : ""}
-        </p>
-      )}
-      {kind !== "rarity" && rarities.length > 1 && (
-        <div className="chips">
-          <button type="button" className={rarity === null ? "chip is-on" : "chip"} onClick={() => setRarity(null)}>
-            全部
-          </button>
-          {rarities.map((r) => (
-            <button key={r || "none"} type="button" className={rarity === r ? "chip is-on" : "chip"} onClick={() => setRarity(r)}>
-              {r || "未標示"}
-            </button>
-          ))}
+      <PageHead back={backLabel} onBack={onBack} title={title} />
+      {kind === "set" && first && (
+        <div className="set-head">
+          <p className="lead">
+            {first.lang === "zh" && SET_NAMES[first.setCode] ? `${SET_NAMES[first.setCode]}・` : ""}
+            {LANG_LABEL[first.lang]}
+          </p>
+          {total > 0 && (
+            <div className="set-progress">
+              <span className="progress">
+                <span style={{ width: `${Math.max(2, Math.min(100, (ownedCount / total) * 100))}%` }} />
+              </span>
+              <span>
+                已收 <strong>{ownedCount}</strong> / {total}
+              </span>
+            </div>
+          )}
         </div>
       )}
-      <BinderPages slots={slots} start={newest} onOpen={onOpen} />
+      {kind === "set" ? (
+        <BinderPages slots={slots} start={newest} onOpen={open} />
+      ) : (
+        <>
+          <p className="lead">{copies} 張</p>
+          <div className="card-grid">
+            {sorted.map((c) => (
+              <button key={c.id} type="button" className="grid-card" onClick={() => open(c)}>
+                <Photo blob={c.photo} className="card-img" alt={c.name} />
+                <span className="grid-card-name">{c.name || "未填卡名"}</span>
+                <span className="grid-card-meta">
+                  {c.setCode} {c.number}
+                  {c.qty > 1 ? `・${c.qty} 張` : ""}
+                </span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

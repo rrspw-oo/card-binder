@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { isReady, locate, readCard, straighten, warmUp } from "../ocr";
-import { db } from "../db";
+import { db, saveCard } from "../db";
+import CardEditor from "./CardEditor";
+import Icon from "./Icon";
 
 const CARD_W = 630;
 const CARD_H = 880;
 const OCR_MAX_W = 1000;
-const LIVE_MS = 600;
+const LIVE_MS = 450;
+const STEADY = 3;
+const STEADY_MOVE = 0.03;
 
 function mapFrame(frame, box, naturalW, naturalH) {
   const sx = naturalW / box.width;
@@ -47,7 +51,7 @@ const cameraMessage = (err) => CAMERA_ERRORS[err?.name] || `無法開啟相機�
 
 const toBlob = (canvas) => new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
 
-function Scanner({ onCaptured, onClose }) {
+function Scanner({ onClose }) {
   const videoRef = useRef(null);
   const imgRef = useRef(null);
   const frameRef = useRef(null);
@@ -58,6 +62,12 @@ function Scanner({ onCaptured, onClose }) {
   const [view, setView] = useState({ scale: 1, x: 0, y: 0 });
   const [busy, setBusy] = useState(false);
   const [found, setFound] = useState(null);
+  const [steady, setSteady] = useState(false);
+  const [pending, setPending] = useState(null);
+  const [note, setNote] = useState("");
+  const [saved, setSaved] = useState(0);
+  const armed = useRef(true);
+  const captureRef = useRef(null);
 
   const streamRef = useRef(null);
   const [attempt, setAttempt] = useState(0);
@@ -98,8 +108,15 @@ function Scanner({ onCaptured, onClose }) {
 
   useEffect(() => () => photo && URL.revokeObjectURL(photo.url), [photo]);
 
+  useEffect(() => {
+    if (!note) return;
+    const t = setTimeout(() => setNote(""), 2200);
+    return () => clearTimeout(t);
+  }, [note]);
+
   const pickPhoto = (e) => {
     const file = e.target.files[0];
+    e.target.value = "";
     if (!file) return;
     setPhoto({ url: URL.createObjectURL(file) });
     setView({ scale: 1, x: 0, y: 0 });
@@ -115,7 +132,7 @@ function Scanner({ onCaptured, onClose }) {
   };
 
   const onPointerDown = (e) => {
-    if (mode !== "photo") return;
+    if (mode !== "photo" || pending) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
   };
@@ -138,7 +155,7 @@ function Scanner({ onCaptured, onClose }) {
   const onPointerUp = (e) => pointers.current.delete(e.pointerId);
 
   const onWheel = (e) => {
-    if (mode !== "photo") return;
+    if (mode !== "photo" || pending) return;
     setView((v) => ({ ...v, scale: Math.min(8, Math.max(0.3, v.scale * (e.deltaY < 0 ? 1.08 : 0.92))) }));
   };
 
@@ -156,21 +173,35 @@ function Scanner({ onCaptured, onClose }) {
 
   useEffect(() => {
     setFound(null);
-    if (busy || (mode === "camera" && cameraError)) return;
-    let hits = 0;
+    setSteady(false);
+    if (busy || pending || (mode === "camera" && cameraError)) return;
+    let last = null;
+    let still = 0;
     const timer = setInterval(() => {
       const target = sourceRect();
       if (!target) return;
       const quad = locate(target.source, target.rect);
-      hits = quad ? hits + 1 : 0;
-      setFound(hits >= 2 ? quad : null);
+      if (!quad) {
+        last = null;
+        still = 0;
+        armed.current = true;
+        setFound(null);
+        setSteady(false);
+        return;
+      }
+      const moved = last ? Math.max(...quad.map(([x, y], i) => Math.hypot(x - last[i][0], y - last[i][1]))) : 1;
+      still = moved < STEADY_MOVE ? still + 1 : 1;
+      last = quad;
+      setFound(quad);
+      setSteady(mode === "camera" && armed.current && still >= 2);
+      if (mode === "camera" && armed.current && still >= STEADY) captureRef.current();
     }, LIVE_MS);
     return () => clearInterval(timer);
-  }, [mode, busy, cameraError]);
+  }, [mode, busy, pending, cameraError]);
 
   const capture = async () => {
     const target = sourceRect();
-    if (!target) return;
+    if (!target || busy) return;
     const { source, rect } = target;
     if (mode === "camera") videoRef.current.pause();
     setBusy(true);
@@ -185,7 +216,31 @@ function Scanner({ onCaptured, onClose }) {
       result = null;
     }
     setBusy(false);
-    onCaptured({ photo: photoBlob, result });
+    setPending({ photo: photoBlob, result, key: Date.now() });
+  };
+  captureRef.current = capture;
+
+  const resume = () => {
+    setPending(null);
+    if (mode === "camera") videoRef.current?.play();
+  };
+
+  const retake = () => {
+    armed.current = true;
+    resume();
+  };
+
+  const save = async (form) => {
+    try {
+      const { merged } = await saveCard(form);
+      setNote(merged ? `已經有 ${form.setCode} ${form.number}，數量加 1` : `已收進 ${form.setCode} ${form.number}`);
+      setSaved((n) => n + 1);
+    } catch (err) {
+      setNote(`儲存失敗：${err?.name || ""} ${err?.message || err}`);
+      return;
+    }
+    armed.current = false;
+    resume();
   };
 
   const hint =
@@ -193,11 +248,17 @@ function Scanner({ onCaptured, onClose }) {
       ? `${cameraError}，也可以改從相簿選照片`
       : busy
         ? "辨識中，可以放下手機"
-        : found
-          ? "找到卡片，可以拍了"
-          : mode === "photo"
-            ? "拖曳、縮放照片，讓卡片在框內"
-            : "把卡片放進框內，不用對齊";
+        : steady
+          ? "保持不動，馬上拍"
+          : found
+            ? mode === "camera"
+              ? "找到卡片"
+              : "找到卡片，按下快門"
+            : mode === "photo"
+              ? "拖曳、縮放照片，讓卡片在框內"
+              : armed.current
+                ? "把卡片放進框內，會自動拍照"
+                : "換下一張卡片";
 
   return (
     <div className="scanner">
@@ -222,38 +283,50 @@ function Scanner({ onCaptured, onClose }) {
             style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})` }}
           />
         )}
-        <div ref={frameRef} className={found ? "scanner-frame is-found" : "scanner-frame"}>
+        <div ref={frameRef} className={`scanner-frame${found ? " is-found" : ""}${steady ? " is-steady" : ""}`}>
           <span className="corner is-tl" />
           <span className="corner is-tr" />
           <span className="corner is-br" />
           <span className="corner is-bl" />
-          {found && !busy && (
+          {found && !busy && !pending && (
             <svg className="scanner-outline" viewBox="0 0 1 1" preserveAspectRatio="none">
               <polygon points={found.map(([x, y]) => `${x},${y}`).join(" ")} />
             </svg>
           )}
           {busy && <span className="scanner-sweep" />}
         </div>
-        <div className={found || busy ? "scanner-hint is-on" : "scanner-hint"}>
-          {cameraError && mode === "camera" && (
-            <button type="button" className="retry" onClick={() => setAttempt((n) => n + 1)}>
-              重試
-            </button>
-          )}
-          <p>{hint}</p>
-          {busy && !isReady() && <p className="scanner-note">第一次使用要下載約 13MB 的辨識資料，需要一點時間</p>}
+        <div className="scanner-top">
+          <button type="button" className="scanner-done" onClick={onClose}>
+            {saved ? `完成（${saved}）` : "完成"}
+          </button>
         </div>
+        {!pending && (
+          <div className={found || busy ? "scanner-hint is-on" : "scanner-hint"}>
+            {cameraError && mode === "camera" && (
+              <button type="button" className="retry" onClick={() => setAttempt((n) => n + 1)}>
+                重試
+              </button>
+            )}
+            <p>{hint}</p>
+            {busy && !isReady() && <p className="scanner-note">第一次使用要下載約 13MB 的辨識資料，需要一點時間</p>}
+          </div>
+        )}
+        {note && <div className="scanner-toast">{note}</div>}
       </div>
       <div className="scanner-bar">
-        <button type="button" className="text-button is-light" onClick={onClose}>
-          取消
-        </button>
-        <button type="button" className={found ? "shutter is-ready" : "shutter"} aria-label="拍照" onClick={capture} disabled={busy} />
-        <label className="text-button is-light">
-          相簿
+        <span />
+        <button type="button" className={found ? "shutter is-ready" : "shutter"} aria-label="拍照" onClick={capture} disabled={busy || Boolean(pending)} />
+        <label className="scanner-album">
+          <Icon name="photos" />
+          <span>相簿</span>
           <input type="file" accept="image/*" hidden onChange={pickPhoto} />
         </label>
       </div>
+      {pending && (
+        <div className="sheet-backdrop">
+          <CardEditor key={pending.key} sheet card={{ photo: pending.photo }} result={pending.result} onSave={save} onCancel={retake} />
+        </div>
+      )}
     </div>
   );
 }

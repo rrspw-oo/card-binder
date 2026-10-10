@@ -1,5 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import Photo from "./Photo";
+import TiltCard from "./TiltCard";
+import PageHead from "./PageHead";
 import { LANGS, RARITIES, RECENT_SETS, SET_NAMES, searchNames } from "../parse";
 
 const LAST_SET = "lastSet";
@@ -29,7 +31,7 @@ function initialForm(card, result) {
   };
 }
 
-function CardEditor({ card, result, onSave, onCancel }) {
+function CardEditor({ card, result, onSave, onCancel, sheet = false }) {
   const [form, setForm] = useState(() => initialForm(card, result));
   const [nameFocus, setNameFocus] = useState(false);
   const suggestions = useMemo(() => (nameFocus ? searchNames(form.name, form.lang) : []), [form.name, form.lang, nameFocus]);
@@ -37,7 +39,7 @@ function CardEditor({ card, result, onSave, onCancel }) {
   const setCodeRef = useRef(null);
   const numberRef = useRef(null);
   const [tried, setTried] = useState(false);
-  const [full, setFull] = useState(Boolean(card.id));
+  const [full, setFull] = useState(!sheet);
   const [ask] = useState(() => ({ set: !form.setCode, number: !form.number }));
   const missing = [!form.setCode.trim() && ["系列代號", setCodeRef], !form.number.trim() && ["卡號", numberRef]].filter(Boolean);
 
@@ -100,43 +102,114 @@ function CardEditor({ card, result, onSave, onCancel }) {
     form.rarity,
   ].filter(Boolean);
 
-  return (
-    <div className="page">
-      <header className="page-head">
-        <button type="button" className="text-button" onClick={onCancel}>
-          取消
-        </button>
-        <h1>{card.id ? "編輯卡片" : "確認卡片"}</h1>
-        {!full ? (
-          <button type="button" className="text-button" onClick={() => setFull(true)}>
-            修改
-          </button>
-        ) : (
-          <span />
-        )}
-      </header>
-      {!full ? (
-        <div className="confirm">
-          <Photo blob={form.photo} className="confirm-photo" />
-          <h2 className={form.name ? "confirm-name" : "confirm-name is-empty"}>{form.name || "沒有讀到卡名"}</h2>
-          {meta.length > 0 && <p className="confirm-meta">{meta.join("・")}</p>}
-          {(ask.set || ask.number) && (
-            <div className="editor confirm-ask">
-              {ask.set && setCodeField}
-              {ask.set && setChips}
-              {ask.set && setHint}
-              {ask.number && (
-                <div className="field-row">
-                  {numberField}
-                  {totalField}
+  if (sheet) {
+    return (
+      <div className="sheet-panel" role="dialog" aria-label="確認卡片">
+        <span className="grabber" aria-hidden="true" />
+        <div className="sheet-body">
+          {full ? (
+            <div className="editor">
+              {!sheet && <Photo blob={form.photo} className="card-img editor-photo" />}
+              <div className="field-row">
+                {setCodeField}
+                <label className="field is-small">
+                  <span>語言</span>
+                  <select value={form.lang} onChange={set("lang")}>
+                    {LANGS.map(([v, label]) => (
+                      <option key={v} value={v}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              {setChips}
+              {setHint}
+              <div className="field-row">
+                {numberField}
+                {totalField}
+                <label className="field is-small">
+                  <span>稀有度</span>
+                  <select value={form.rarity} onChange={set("rarity")}>
+                    <option value="">無</option>
+                    {RARITIES.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <label className="field">
+                <span>卡名</span>
+                <input
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value, dex: null }))}
+                  onFocus={() => setNameFocus(true)}
+                  onBlur={() => setTimeout(() => setNameFocus(false), 150)}
+                  placeholder="寶可夢名稱或卡名"
+                />
+              </label>
+              {suggestions.length > 0 && (
+                <ul className="suggest">
+                  {suggestions.map((s) => (
+                    <li key={s.dex}>
+                      <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => setForm((f) => ({ ...f, name: s.name, dex: s.dex }))}>
+                        {s.name}
+                        <span className="muted">#{String(s.dex).padStart(4, "0")}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <label className="field is-small">
+                <span>數量</span>
+                <input value={form.qty} onChange={set("qty")} inputMode="numeric" />
+              </label>
+            </div>
+          ) : (
+            <div className="confirm">
+              <TiltCard blob={form.photo} className="confirm-photo" />
+              <h2 className={form.name ? "confirm-name" : "confirm-name is-empty"}>{form.name || "沒有讀到卡名"}</h2>
+              {meta.length > 0 && <p className="confirm-meta">{meta.join("・")}</p>}
+              {!ask.set && result?.setCandidates?.length > 0 && <div className="confirm-alt">{setChips}</div>}
+              <button type="button" className="head-action" onClick={() => setFull(true)}>
+                修改資料
+              </button>
+              {(ask.set || ask.number) && (
+                <div className="editor confirm-ask">
+                  {ask.set && setCodeField}
+                  {ask.set && setChips}
+                  {ask.set && setHint}
+                  {ask.number && (
+                    <div className="field-row">
+                      {numberField}
+                      {totalField}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           )}
         </div>
-      ) : (
+        <footer className="sheet-foot">
+          {tried && missing.length > 0 && <p className="foot-error">請填寫{missing.map(([label]) => label).join("、")}</p>}
+          <button type="button" className="button is-ghost" onClick={onCancel}>
+            重拍
+          </button>
+          <button type="button" className="button" onClick={() => submit("scan")}>
+            收進卡冊
+          </button>
+        </footer>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page">
+      <PageHead back="取消" onBack={onCancel} title={card.id ? "編輯卡片" : "確認卡片"} />
         <div className="editor">
-          <Photo blob={form.photo} className="editor-photo" />
+          {!sheet && <Photo blob={form.photo} className="card-img editor-photo" />}
           <div className="field-row">
             {setCodeField}
             <label className="field is-small">
@@ -194,17 +267,11 @@ function CardEditor({ card, result, onSave, onCancel }) {
             <input value={form.qty} onChange={set("qty")} inputMode="numeric" />
           </label>
         </div>
-      )}
-      <footer className={card.id ? "page-foot is-floating is-row is-single" : "page-foot is-floating is-row"}>
+      <footer className="page-foot is-floating is-row is-single">
         {tried && missing.length > 0 && <p className="foot-error">請填寫{missing.map(([label]) => label).join("、")}</p>}
-        <button type="button" className={card.id ? "button" : "button is-ghost"} onClick={() => submit("done")}>
-          {card.id ? "儲存" : "存入卡冊"}
+        <button type="button" className="button" onClick={() => submit("done")}>
+          儲存
         </button>
-        {!card.id && (
-          <button type="button" className="button" onClick={() => submit("scan")}>
-            存入，掃下一張
-          </button>
-        )}
       </footer>
     </div>
   );

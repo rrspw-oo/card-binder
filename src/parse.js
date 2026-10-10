@@ -123,6 +123,8 @@ export function parseSetCode(text, known = []) {
   if (!core) return none;
   const guess = normalizeSetCode(core);
   const pool = [...new Set([...known, ...SETS_ZH.map(([code]) => code)])];
+  const longer = known.filter((k) => /[a-z]$/.test(k) && lookalike(k).slice(0, -1) === lookalike(guess));
+  if (longer.length) return { code: longer[0], candidates: pool.filter((k) => lookalike(k) === lookalike(guess)).slice(0, 3) };
   const exact = pool.find((k) => lookalike(k) === lookalike(guess));
   if (exact) return { code: exact, candidates: [] };
   const tail = lookalike(guess).slice(-2);

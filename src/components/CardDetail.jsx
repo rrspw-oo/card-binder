@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { db } from "../db";
 import { useLive } from "../useLive";
 import { LANGS } from "../parse";
-import Photo from "./Photo";
+import TiltCard from "./TiltCard";
+import PageHead from "./PageHead";
+import Icon from "./Icon";
 
 const LANG_LABEL = Object.fromEntries(LANGS);
 
@@ -34,67 +36,71 @@ function CardDetail({ id, onBack, backLabel, onEdit, onOpenPokemon, onOpenSet })
 
   return (
     <div className="page">
-      <header className="page-head">
-        <button type="button" className="text-button" onClick={onBack}>
-          {backLabel}
-        </button>
-        <h1>{card.setCode} {card.number}</h1>
-        <button type="button" className="text-button" onClick={() => onEdit(card)}>
-          編輯
-        </button>
-      </header>
+      <PageHead
+        back={backLabel}
+        onBack={onBack}
+        title=""
+        right={
+          <button type="button" className="head-action" onClick={() => onEdit(card)}>
+            編輯
+          </button>
+        }
+      />
       <div className="detail">
-        <Photo blob={card.photo} className="detail-photo" alt={card.name} />
+        <TiltCard blob={card.photo} className="detail-photo" alt={card.name} />
         {card.name ? (
           <button type="button" className="detail-name" onClick={() => onOpenPokemon(card)}>
             {card.name}
           </button>
         ) : (
-          <p className="detail-name muted">未填卡名</p>
+          <p className="detail-name is-empty">未填卡名</p>
         )}
-        <dl className="meta">
-          <dt>系列</dt>
-          <dd>
-            <button type="button" className="link" onClick={() => onOpenSet(card.setKey)}>
-              {card.setCode}
-            </button>
-            ，{LANG_LABEL[card.lang]}
-          </dd>
-          <dt>卡號</dt>
-          <dd>
-            {card.number}
-            {card.total ? ` / ${card.total}` : ""}
-          </dd>
-          <dt>稀有度</dt>
-          <dd>{card.rarity || "未標示"}</dd>
-          <dt>數量</dt>
-          <dd className="stepper">
-            <button type="button" aria-label="減少" onClick={() => setQty(card.qty - 1)} disabled={card.qty <= 1}>
-              −
-            </button>
-            <span>{card.qty}</span>
-            <button type="button" aria-label="增加" onClick={() => setQty(card.qty + 1)}>
-              +
-            </button>
-          </dd>
-        </dl>
-        <section className="tags">
-          <h2>標籤</h2>
-          <div className="chips">
-            {card.tags.map((t) => (
-              <button key={t} type="button" className="chip is-on" onClick={() => removeTag(t)} aria-label={`移除標籤 ${t}`}>
-                {t} ×
+        <p className="detail-sub">
+          {card.setCode} {card.number}
+          {card.total ? ` / ${card.total}` : ""}
+          {card.rarity ? `・${card.rarity}` : ""}
+        </p>
+        <div className="group">
+          <button type="button" className="group-row" onClick={() => onOpenSet(card.setKey)}>
+            <span>系列</span>
+            <span className="group-value">
+              {card.setCode}・{LANG_LABEL[card.lang]}
+            </span>
+            <Icon name="forward" size={16} />
+          </button>
+          <div className="group-row">
+            <span>數量</span>
+            <span className="stepper">
+              <button type="button" aria-label="減少" onClick={() => setQty(card.qty - 1)} disabled={card.qty <= 1}>
+                <Icon name="minus" size={16} />
               </button>
-            ))}
+              <strong>{card.qty}</strong>
+              <button type="button" aria-label="增加" onClick={() => setQty(card.qty + 1)}>
+                <Icon name="plus" size={16} />
+              </button>
+            </span>
           </div>
+        </div>
+        <h2 className="section-title">標籤</h2>
+        <div className="group">
+          {card.tags.length > 0 && (
+            <div className="pills group-pad">
+              {card.tags.map((t) => (
+                <button key={t} type="button" className="pill is-tag" onClick={() => removeTag(t)} aria-label={`移除標籤 ${t}`}>
+                  {t}
+                  <Icon name="close" size={12} />
+                </button>
+              ))}
+            </div>
+          )}
           <form className="tag-form" onSubmit={addTag}>
             <input value={tag} onChange={(e) => setTag(e.target.value)} placeholder="新增標籤，例如 交換用" />
-            <button type="submit" className="button is-ghost">
+            <button type="submit" className="head-action" disabled={!tag.trim()}>
               加入
             </button>
           </form>
-        </section>
-        <button type="button" className="text-button is-danger" onClick={remove}>
+        </div>
+        <button type="button" className="danger-button" onClick={remove}>
           刪除這張卡片
         </button>
       </div>
