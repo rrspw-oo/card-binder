@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "data:names": "node scripts/build-names.mjs"
+    "data:names": "node scripts/build-names.mjs",
+    "data:sets": "node scripts/build-sets.mjs"
   },
   "dependencies": {
     "dexie": "^4.0.11",

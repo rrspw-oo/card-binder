@@ -20,6 +20,7 @@ npm run build
 ## Credits
 
 - Pokémon names: [PokeAPI](https://pokeapi.co/)
+- Traditional Chinese set codes and names: the official Pokémon TCG card search (asia.pokemon-card.com/tw), codes and names only
 - OCR: [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) PP-OCRv6 models (Apache-2.0, see `public/models/`) via [ppu-paddle-ocr](https://github.com/PT-Perkasa-Pilar-Utama/ppu-paddle-ocr) and [ONNX Runtime Web](https://onnxruntime.ai/)
 
 Pokémon and Pokémon card names and images are trademarks of Nintendo, Creatures, GAME FREAK and The Pokémon Company. This is an unofficial fan project.

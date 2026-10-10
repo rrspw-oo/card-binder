@@ -78,5 +78,6 @@ export async function readCard(card, frame, knownSets = []) {
   const match = dex ? { dex, lang: lang || "zh", name: nameOfDex(dex, lang || "zh") } : matchName(text);
   const { full, ...fields } = code;
   if (!full && fields.total.length === 3) fields.number = "";
-  return { ...fields, setCode: parseSetCode(text, knownSets), lang, match, raw: text, seconds: (performance.now() - started) / 1000, passes, loadSeconds };
+  const set = parseSetCode(text, knownSets);
+  return { ...fields, setCode: set.code, setCandidates: set.candidates, lang, match, raw: text, seconds: (performance.now() - started) / 1000, passes, loadSeconds };
 }

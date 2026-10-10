@@ -20,6 +20,7 @@ npm run build
 ## 資料來源
 
 - 寶可夢名稱：[PokeAPI](https://pokeapi.co/)
+- 繁中系列代號與名稱：寶可夢卡牌官方卡牌搜尋頁（asia.pokemon-card.com/tw），只取代號與名稱
 - 文字辨識：[PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) PP-OCRv6 模型（Apache-2.0，見 `public/models/`），透過 [ppu-paddle-ocr](https://github.com/PT-Perkasa-Pilar-Utama/ppu-paddle-ocr) 與 [ONNX Runtime Web](https://onnxruntime.ai/) 執行
 
 Pokémon 及卡牌名稱、圖像之版權屬於 Nintendo、Creatures、GAME FREAK 與 The Pokémon Company。本專案為非官方粉絲作品。

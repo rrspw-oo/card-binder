@@ -1,4 +1,5 @@
 import NAMES from "./data/names.json";
+import SETS_ZH from "./data/sets-zh.json";
 
 export const RARITIES = ["C", "U", "R", "RR", "RRR", "AR", "SAR", "SR", "UR", "HR", "ACE", "PR"];
 export const LANGS = [
@@ -107,20 +108,27 @@ const normalizeSetCode = (raw) => {
   return `${m[1]}${digits}${rest}`;
 };
 
+export const SET_NAMES = Object.fromEntries(SETS_ZH);
+export const RECENT_SETS = SETS_ZH.slice(0, 4).map(([code]) => code);
+
+const lookalike = (s) => [...s].map((c) => (/[A-Za-z]/.test(c) && DIGIT_LOOKALIKE[c] ? DIGIT_LOOKALIKE[c] : c)).join("").toLowerCase();
+
 export function parseSetCode(text, known = []) {
+  const none = { code: "", candidates: [] };
   const line = text.split("\n").find((l) => /\d{1,3}\s*\/\s*\d{2,3}/.test(l));
-  if (!line) return "";
+  if (!line) return none;
   const before = line.slice(0, line.search(/\d{1,3}\s*\/\s*\d{2,3}/)).replace(/[^A-Za-z0-9]/g, "");
-  const core = before.replace(/^[D-J](?=[A-Za-z0-9]{2})/, "").replace(/[A-Z]$/, "");
-  if (!core) return "";
+  let core = before.replace(/^[D-J](?=[A-Za-z0-9]{2})/, "").replace(/[A-Z]$/, "");
+  if (core.length >= 3 && /^[a-z]/.test(core) && !DIGIT_LOOKALIKE[core[0]]) core = core[0].toUpperCase() + core.slice(1);
+  if (!core) return none;
   const guess = normalizeSetCode(core);
-  const loose = (s) => [...s].map((c) => (/[A-Za-z]/.test(c) && DIGIT_LOOKALIKE[c] ? DIGIT_LOOKALIKE[c] : c)).join("").toLowerCase();
-  const exact = known.find((k) => loose(k) === loose(guess));
-  if (exact) return exact;
-  const tail = loose(guess).slice(-2);
-  const byTail = tail.length === 2 ? known.filter((k) => loose(k).endsWith(tail)) : [];
-  if (byTail.length === 1) return byTail[0];
-  return /^[A-Z]{1,3}\d{1,2}[a-z]?$/.test(guess) ? guess : "";
+  const pool = [...new Set([...known, ...SETS_ZH.map(([code]) => code)])];
+  const exact = pool.find((k) => lookalike(k) === lookalike(guess));
+  if (exact) return { code: exact, candidates: [] };
+  const tail = lookalike(guess).slice(-2);
+  const byTail = tail.length === 2 ? pool.filter((k) => lookalike(k).endsWith(tail)) : [];
+  if (byTail.length) return { code: byTail[0], candidates: byTail.slice(1, 4) };
+  return { code: /^[A-Z]{1,3}\d{1,2}[a-z]?$/.test(guess) ? guess : "", candidates: [] };
 }
 
 export function parseDex(text) {

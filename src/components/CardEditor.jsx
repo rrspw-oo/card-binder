@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import Photo from "./Photo";
-import { LANGS, RARITIES, searchNames } from "../parse";
+import { LANGS, RARITIES, RECENT_SETS, SET_NAMES, searchNames } from "../parse";
 
 const LAST_SET = "lastSet";
 
@@ -75,7 +75,8 @@ function CardEditor({ card, result, onSave, onCancel }) {
         <div className="field-row">
           <label className="field">
             <span>系列代號</span>
-            <input value={form.setCode} onChange={set("setCode")} placeholder="M6a" autoCapitalize="off" />
+            <input value={form.setCode} onChange={set("setCode")} placeholder="例：M6a" autoCapitalize="off" />
+            {SET_NAMES[form.setCode.trim()] && <small className="field-note">{SET_NAMES[form.setCode.trim()]}</small>}
           </label>
           <label className="field is-small">
             <span>語言</span>
@@ -88,6 +89,22 @@ function CardEditor({ card, result, onSave, onCancel }) {
             </select>
           </label>
         </div>
+        {(result?.setCandidates?.length > 0 || !form.setCode.trim()) && (
+          <div className="chips set-chips">
+            <span className="muted small">{result?.setCandidates?.length > 0 ? "也可能是" : "最新系列"}</span>
+            {(result?.setCandidates?.length > 0 ? [result.setCode, ...result.setCandidates] : RECENT_SETS).map((code) => (
+              <button
+                key={code}
+                type="button"
+                className={form.setCode === code ? "chip is-on" : "chip"}
+                onClick={() => setForm((f) => ({ ...f, setCode: code }))}
+              >
+                {code} {SET_NAMES[code] || ""}
+              </button>
+            ))}
+          </div>
+        )}
+        {!form.setCode.trim() && <p className="muted small">系列代號在卡片左下角的小框裡，同一包卡只要填一次，之後會自動帶入</p>}
         <div className="field-row">
           <label className="field">
             <span>卡號</span>

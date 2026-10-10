@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { db } from "../db";
 import { useLive } from "../useLive";
-import { LANGS, RARITIES, missingNumbers } from "../parse";
+import { LANGS, RARITIES, SET_NAMES, missingNumbers } from "../parse";
 import BinderPages from "./BinderPages";
 
 const LANG_LABEL = Object.fromEntries(LANGS);
@@ -56,6 +56,7 @@ function ListView({ kind, value, onBack, backLabel, onOpen }) {
       </header>
       {kind === "set" && cards?.[0] && (
         <p className="summary muted">
+          {cards[0].lang === "zh" && SET_NAMES[cards[0].setCode] ? `${SET_NAMES[cards[0].setCode]}，` : ""}
           {LANG_LABEL[cards[0].lang]}
           {total ? `，已收 ${ownedCount} / ${total}` : ""}
         </p>

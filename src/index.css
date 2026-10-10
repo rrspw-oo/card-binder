@@ -302,6 +302,13 @@ p {
   align-items: baseline;
 }
 
+.cover-name {
+  overflow: hidden;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .cover-meta {
   font-size: 13px;
   font-variant-numeric: tabular-nums;
@@ -537,6 +544,16 @@ p {
 .field input,
 .field select {
   color: var(--ink);
+}
+
+.field-note {
+  color: var(--soft);
+  font-size: 12px;
+}
+
+.set-chips {
+  align-items: center;
+  margin: -4px 0 0;
 }
 
 .field-row {

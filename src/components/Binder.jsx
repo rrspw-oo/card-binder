@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { db } from "../db";
 import { useLive } from "../useLive";
-import { LANGS, RARITIES } from "../parse";
+import { LANGS, RARITIES, SET_NAMES } from "../parse";
 import Photo from "./Photo";
 
 const LANG_LABEL = Object.fromEntries(LANGS);
@@ -77,6 +77,7 @@ function Binder({ tab, onTab, onOpenSet, onOpenRarity, onOpenTag, onScan, onBack
                   <strong>{g.setCode}</strong>
                   <span className="muted">{LANG_LABEL[g.lang]}</span>
                 </span>
+                {g.lang === "zh" && SET_NAMES[g.setCode] && <span className="cover-name muted">{SET_NAMES[g.setCode]}</span>}
                 <span className="cover-meta muted">
                   {g.total ? `${g.numbers.size} / ${g.total}` : `${g.kinds} 種`}
                   {g.copies > g.kinds ? `，重複 ${g.copies - g.kinds}` : ""}
