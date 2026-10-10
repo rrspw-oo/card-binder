@@ -43,28 +43,46 @@ function ListView({ kind, value, onBack, backLabel, onOpen }) {
   const copies = sorted.reduce((sum, c) => sum + c.qty, 0);
   const first = cards?.[0];
   const title = titleOf(kind, value, cards);
-  const open = (card) => onOpen(card, title);
+  const open = (card) => onOpen(card, title, sorted);
 
   return (
     <div className="page">
       <PageHead back={backLabel} onBack={onBack} title={title} />
       {kind === "set" && first && (
-        <div className="set-head">
-          <p className="lead">
-            {first.lang === "zh" && SET_NAMES[first.setCode] ? `${SET_NAMES[first.setCode]}・` : ""}
-            {LANG_LABEL[first.lang]}
-          </p>
+        <section className="cover">
+          <div className="cover-text">
+            <h2 className="cover-code">{first.setCode}</h2>
+            <p className="cover-name">
+              {first.lang === "zh" && SET_NAMES[first.setCode] ? `${SET_NAMES[first.setCode]}・` : ""}
+              {LANG_LABEL[first.lang]}
+            </p>
+            <dl className="cover-stats">
+              <div>
+                <dt>已收</dt>
+                <dd>{total ? ownedCount : sorted.length}</dd>
+              </div>
+              {total > 0 && (
+                <div>
+                  <dt>還缺</dt>
+                  <dd>{total - ownedCount}</dd>
+                </div>
+              )}
+              <div>
+                <dt>重複</dt>
+                <dd>{copies - sorted.length}</dd>
+              </div>
+            </dl>
+          </div>
           {total > 0 && (
-            <div className="set-progress">
-              <span className="progress">
-                <span style={{ width: `${Math.max(2, Math.min(100, (ownedCount / total) * 100))}%` }} />
-              </span>
-              <span>
-                已收 <strong>{ownedCount}</strong> / {total}
-              </span>
-            </div>
+            <svg className="ring" viewBox="0 0 64 64" aria-label={`已收 ${ownedCount} / ${total}`}>
+              <circle cx="32" cy="32" r="27" className="ring-track" />
+              <circle cx="32" cy="32" r="27" className="ring-fill" pathLength="100" strokeDasharray={`${Math.max(1, (ownedCount / total) * 100)} 100`} />
+              <text x="32" y="33" className="ring-text">
+                {Math.round((ownedCount / total) * 100)}%
+              </text>
+            </svg>
           )}
-        </div>
+        </section>
       )}
       {kind === "set" ? (
         <BinderPages slots={slots} start={newest} onOpen={open} />

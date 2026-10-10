@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import Photo from "./Photo";
 import TiltCard from "./TiltCard";
+import Icon from "./Icon";
 import PageHead from "./PageHead";
 import { LANGS, RARITIES, RECENT_SETS, SET_NAMES, searchNames } from "../parse";
 
@@ -31,9 +32,10 @@ function initialForm(card, result) {
   };
 }
 
-function CardEditor({ card, result, onSave, onCancel, sheet = false }) {
+function CardEditor({ card, result, onSave, onCancel, onDelete, sheet = false }) {
   const [form, setForm] = useState(() => initialForm(card, result));
   const [nameFocus, setNameFocus] = useState(false);
+  const [tag, setTag] = useState("");
   const suggestions = useMemo(() => (nameFocus ? searchNames(form.name, form.lang) : []), [form.name, form.lang, nameFocus]);
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
   const setCodeRef = useRef(null);
@@ -266,6 +268,41 @@ function CardEditor({ card, result, onSave, onCancel, sheet = false }) {
             <span>數量</span>
             <input value={form.qty} onChange={set("qty")} inputMode="numeric" />
           </label>
+          {card.id && (
+            <div className="field">
+              <span>標籤</span>
+              {form.tags.length > 0 && (
+                <div className="pills">
+                  {form.tags.map((t) => (
+                    <button key={t} type="button" className="pill is-tag" onClick={() => setForm((f) => ({ ...f, tags: f.tags.filter((x) => x !== t) }))} aria-label={`移除標籤 ${t}`}>
+                      {t}
+                      <Icon name="close" size={12} />
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="tag-form group">
+                <input value={tag} onChange={(e) => setTag(e.target.value)} placeholder="新增標籤，例如 交換用" />
+                <button
+                  type="button"
+                  className="head-action"
+                  disabled={!tag.trim()}
+                  onClick={() => {
+                    const t = tag.trim();
+                    if (!form.tags.includes(t)) setForm((f) => ({ ...f, tags: [...f.tags, t] }));
+                    setTag("");
+                  }}
+                >
+                  加入
+                </button>
+              </div>
+            </div>
+          )}
+          {card.id && onDelete && (
+            <button type="button" className="danger-button" onClick={() => window.confirm("確定刪除這張卡片？") && onDelete()}>
+              刪除這張卡片
+            </button>
+          )}
         </div>
       <footer className="page-foot is-floating is-row is-single">
         {tried && missing.length > 0 && <p className="foot-error">請填寫{missing.map(([label]) => label).join("、")}</p>}

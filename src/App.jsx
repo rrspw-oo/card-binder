@@ -6,7 +6,7 @@ import Scanner from "./components/Scanner";
 import CardEditor from "./components/CardEditor";
 import Backup from "./components/Backup";
 import PokemonList from "./components/PokemonList";
-import { saveCard } from "./db";
+import { db, saveCard } from "./db";
 
 const HOME = { name: "binder" };
 
@@ -39,7 +39,12 @@ function App() {
   const back = useCallback(() => window.history.back(), []);
 
   const openList = (kind, value, backLabel) => go({ name: "list", kind, value, backLabel });
-  const openCard = (card, backLabel) => go({ name: "card", id: card.id, backLabel });
+  const openCard = (card, backLabel, list = []) => go({ name: "card", id: card.id, backLabel, ids: list.map((c) => c.id) });
+  const moveCard = (id) => {
+    const next = { ...window.history.state, id };
+    window.history.replaceState(next, "");
+    setView(next);
+  };
 
   const editCard = (card) => {
     draft.current = { card, result: null };
@@ -57,6 +62,12 @@ function App() {
     back();
   };
 
+  const onDelete = async () => {
+    await db.cards.delete(draft.current.card.id);
+    draft.current = null;
+    back();
+  };
+
   if (view.name === "scan") return <Scanner onClose={back} />;
 
   return (
@@ -66,18 +77,20 @@ function App() {
           onOpenSet={(key) => openList("set", key, "收藏")}
           onOpenRarity={(r) => openList("rarity", r, "收藏")}
           onOpenTag={(t) => openList("tag", t, "收藏")}
-          onOpenCard={(card) => openCard(card, "收藏")}
+          onOpenCard={(card, list) => openCard(card, "收藏", list)}
           onOpenPokemon={() => go({ name: "pokemon" })}
           onScan={() => go({ name: "scan" })}
           onBackup={() => go({ name: "backup" })}
         />
       )}
       {view.name === "list" && (
-        <ListView kind={view.kind} value={view.value} backLabel={view.backLabel} onBack={back} onOpen={(card, label) => openCard(card, label)} />
+        <ListView kind={view.kind} value={view.value} backLabel={view.backLabel} onBack={back} onOpen={(card, label, list) => openCard(card, label, list)} />
       )}
       {view.name === "card" && (
         <CardDetail
           id={view.id}
+          ids={view.ids || []}
+          onMove={moveCard}
           backLabel={view.backLabel}
           onBack={back}
           onEdit={editCard}
@@ -86,7 +99,7 @@ function App() {
         />
       )}
       {view.name === "edit" && draft.current && (
-        <CardEditor card={draft.current.card} result={draft.current.result} onSave={onSave} onCancel={back} />
+        <CardEditor card={draft.current.card} result={draft.current.result} onSave={onSave} onCancel={back} onDelete={onDelete} />
       )}
       {view.name === "pokemon" && <PokemonList onBack={back} onOpen={(card) => openList(card.dex ? "dex" : "name", { dex: card.dex, name: card.name }, "寶可夢")} />}
       {view.name === "backup" && <Backup onBack={back} />}

@@ -12,10 +12,11 @@ const SPARKS = [
   [58, 12, 560],
 ];
 
-function TiltCard({ blob, rarity = "", className = "", alt = "" }) {
+function TiltCard({ blob, rarity = "", className = "", alt = "", onSwipe }) {
   const premium = isPremium(rarity);
   const ref = useRef(null);
   const [active, setActive] = useState(false);
+  const startRef = useRef(null);
 
   const move = (e) => {
     const el = ref.current;
@@ -29,12 +30,20 @@ function TiltCard({ blob, rarity = "", className = "", alt = "" }) {
   };
 
   const start = (e) => {
+    startRef.current = { x: e.clientX, y: e.clientY, t: performance.now() };
     e.currentTarget.setPointerCapture(e.pointerId);
     setActive(true);
     move(e);
   };
 
-  const end = () => {
+  const end = (e) => {
+    const from = startRef.current;
+    startRef.current = null;
+    if (from && onSwipe && e.type === "pointerup") {
+      const dx = e.clientX - from.x;
+      const dy = e.clientY - from.y;
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5 && performance.now() - from.t < 700) onSwipe(dx < 0 ? 1 : -1);
+    }
     const el = ref.current;
     setActive(false);
     el.style.setProperty("--rx", "0deg");
@@ -60,7 +69,7 @@ function TiltCard({ blob, rarity = "", className = "", alt = "" }) {
         ) : (
           <span className="shine-sparks" aria-hidden="true">
             {SPARKS.map(([x, y, delay]) => (
-              <span key={`${x}-${y}`} style={{ left: `${x}%`, top: `${y}%`, animationDelay: `${delay + 300}ms` }} />
+              <span key={`${x}-${y}`} style={{ left: `${x}%`, top: `${y}%`, animationDelay: `${delay + 60}ms` }} />
             ))}
           </span>
         )}

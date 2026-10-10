@@ -116,7 +116,7 @@ function Binder({ onOpenSet, onOpenRarity, onOpenTag, onOpenCard, onOpenPokemon,
               <h2 className="section-title">{results.length ? `找到 ${results.length} 張` : "沒有符合的卡片"}</h2>
               <div className="card-grid">
                 {results.map((c) => (
-                  <button key={c.id} type="button" className="grid-card" onClick={() => onOpenCard(c)}>
+                  <button key={c.id} type="button" className="grid-card" onClick={() => onOpenCard(c, results)}>
                     <Photo blob={c.photo} className="card-img" alt={c.name} />
                     <span className="grid-card-name">{c.name || "未填卡名"}</span>
                     <span className="grid-card-meta">
@@ -132,7 +132,7 @@ function Binder({ onOpenSet, onOpenRarity, onOpenTag, onOpenCard, onOpenPokemon,
                 <h2 className="section-title">最近收進</h2>
                 <div className="rail">
                   {recent.map((c) => (
-                    <button key={c.id} type="button" className="rail-card" onClick={() => onOpenCard(c)}>
+                    <button key={c.id} type="button" className="rail-card" onClick={() => onOpenCard(c, recent)}>
                       <Photo blob={c.photo} className="card-img" alt={c.name} />
                       <span className="rail-name">{c.name || `${c.setCode} ${c.number}`}</span>
                     </button>

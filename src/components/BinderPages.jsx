@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Photo from "./Photo";
+import { isPremium } from "../parse";
 
 const PER_PAGE = 9;
 
@@ -37,8 +38,13 @@ function BinderPages({ slots, start, onOpen }) {
       <div ref={ref} className="binder-pages">
         {pages.map((items, p) => (
           <section key={p} className="sheet" aria-label={`第 ${p + 1} 頁`}>
+            <span className="sheet-rings" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
             {items.map((slot) => (
-              <div key={slot.key} className={`pocket ${slot.card ? "" : "is-empty"}`}>
+              <div key={slot.key} className={`pocket${slot.card ? "" : " is-empty"}${slot.card && isPremium(slot.card.rarity) ? " is-premium" : ""}`}>
                 {slot.card ? (
                   <button type="button" className="pocket-card" onClick={() => onOpen(slot.card)}>
                     <Photo blob={slot.card.photo} className="card-img" alt={slot.card.name || slot.label} />
