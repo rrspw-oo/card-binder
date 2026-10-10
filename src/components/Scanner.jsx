@@ -154,6 +154,7 @@ function Scanner({ onCaptured, onClose }) {
       source = img;
       rect = mapFrame(frame, img.getBoundingClientRect(), img.naturalWidth, img.naturalHeight);
     }
+    if (mode === "camera") videoRef.current.pause();
     setBusy("辨識中");
     const framed = cropToCanvas(source, rect, Math.min(OCR_MAX_W, Math.max(CARD_W, rect[2])));
     const card = straighten(framed) || framed;
@@ -218,7 +219,7 @@ function Scanner({ onCaptured, onClose }) {
       </div>
       {busy && (
         <div className="scanner-busy">
-          <p>{busy}</p>
+          <p>{busy}，可以放下手機</p>
           <p className="muted">第一次使用要下載約 13MB 的辨識資料，需要一點時間</p>
         </div>
       )}

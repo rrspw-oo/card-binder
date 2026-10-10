@@ -8,6 +8,8 @@ const service = new PaddleOcrService({
     recognition: `${base}PP-OCRv6_tiny_rec.ort`,
     charactersDictionary: `${base}ppocrv6_tiny_dict.txt`,
   },
+  session: { executionProviders: ["wasm"] },
+  recognition: { strategy: "cross-line" },
 });
 const startedAt = performance.now();
 let loadSeconds = 0;
