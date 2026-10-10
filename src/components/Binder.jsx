@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { db } from "../db";
 import { useLive } from "../useLive";
 import { LANGS, RARITIES, SET_NAMES } from "../parse";
@@ -37,9 +37,42 @@ function matches(card, q) {
   );
 }
 
+function useDragScroll() {
+  const ref = useRef(null);
+  const drag = useRef(null);
+  const onPointerDown = (e) => {
+    if (e.pointerType !== "mouse") return;
+    drag.current = { x: e.clientX, left: ref.current.scrollLeft, moved: false };
+  };
+  const onPointerMove = (e) => {
+    const d = drag.current;
+    if (!d) return;
+    const dx = e.clientX - d.x;
+    if (!d.moved && Math.abs(dx) > 5) {
+      d.moved = true;
+      ref.current.classList.add("is-dragging");
+    }
+    if (d.moved) ref.current.scrollLeft = d.left - dx;
+  };
+  const end = () => {
+    const d = drag.current;
+    drag.current = null;
+    if (!d?.moved) return;
+    ref.current.classList.remove("is-dragging");
+    const swallow = (ev) => {
+      ev.stopPropagation();
+      ev.preventDefault();
+    };
+    ref.current.addEventListener("click", swallow, { capture: true, once: true });
+    setTimeout(() => ref.current?.removeEventListener("click", swallow, { capture: true }), 0);
+  };
+  return { ref, onPointerDown, onPointerMove, onPointerUp: end, onPointerLeave: end };
+}
+
 function Binder({ onOpenSet, onOpenRarity, onOpenTag, onOpenCard, onOpenPokemon, onScan, onBackup }) {
   const cards = useLive(() => db.cards.toArray(), []);
   const [q, setQ] = useState("");
+  const railDrag = useDragScroll();
   const sets = useMemo(() => (cards ? groupSets(cards) : []), [cards]);
   const stats = useMemo(() => {
     const list = cards || [];
@@ -154,7 +187,7 @@ function Binder({ onOpenSet, onOpenRarity, onOpenTag, onOpenCard, onOpenPokemon,
                   <h2 className="section-title">最近收進</h2>
                   <span className="panel-meta">{recent.length} 張</span>
                 </div>
-                <div className="rail">
+                <div className="rail" {...railDrag}>
                   {recent.map((c) => (
                     <button key={c.id} type="button" className="rail-card" onClick={() => onOpenCard(c, recent)}>
                       <Photo blob={c.photo} className="card-img" alt={c.name} />
@@ -173,10 +206,14 @@ function Binder({ onOpenSet, onOpenRarity, onOpenTag, onOpenCard, onOpenPokemon,
                   {sets.map((g) => (
                     <li key={g.key}>
                       <button type="button" className="album" onClick={() => onOpenSet(g.key)}>
-                        <span className="album-fan" aria-hidden="true">
-                          {g.fan.map((c) => (
-                            <Photo key={c.id} blob={c.photo} className="card-img" />
-                          ))}
+                        <span className="book" aria-hidden="true">
+                          <span className="book-pages" />
+                          <span className="book-cover">
+                            <span className="book-window">
+                              <Photo blob={g.fan[0].photo} className="card-img" />
+                            </span>
+                            <span className="book-title">{g.setCode}</span>
+                          </span>
                         </span>
                         <span className="album-info">
                           <span className="album-code">

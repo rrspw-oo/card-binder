@@ -94,6 +94,10 @@ p {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  ::view-transition-new(root) {
+    animation-name: fade;
+  }
+
   .page,
   .sheet-panel,
   .sheet-backdrop,
@@ -101,7 +105,8 @@ p {
   .confirm-photo,
   .scanner-toast,
   .hero,
-  .cover {
+  .cover,
+  .list-cover {
     animation: none !important;
   }
 
@@ -117,7 +122,33 @@ p {
   min-height: 100dvh;
   margin: 0 auto;
   padding: 0 20px calc(120px + env(safe-area-inset-bottom));
-  animation: enter 0.32s var(--ease);
+}
+
+@supports not (view-transition-name: none) {
+  .page {
+    animation: enter 0.32s var(--ease);
+  }
+}
+
+::view-transition-old(root) {
+  animation: page-out 0.18s ease-in both;
+}
+
+::view-transition-new(root) {
+  animation: page-in 0.34s var(--ease) both;
+}
+
+@keyframes page-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.99);
+  }
 }
 
 .card-img {
@@ -235,7 +266,8 @@ p {
 }
 
 .hero,
-.cover {
+.cover,
+.list-cover {
   border: 1.5px solid transparent;
   background:
     linear-gradient(var(--surface), var(--surface)) padding-box,
@@ -399,7 +431,7 @@ p {
   margin: 0 -20px;
   padding: 4px 20px 14px;
   overflow-x: auto;
-  scroll-snap-type: x proximity;
+  scroll-snap-type: x mandatory;
   scroll-padding-inline: 20px;
   scrollbar-width: none;
   overscroll-behavior-x: contain;
@@ -407,6 +439,11 @@ p {
 
 .rail::-webkit-scrollbar {
   display: none;
+}
+
+.rail.is-dragging {
+  scroll-snap-type: none;
+  cursor: grabbing;
 }
 
 .rail-card:active,
@@ -450,7 +487,7 @@ p {
 
 .album {
   display: grid;
-  grid-template-columns: 104px 1fr auto;
+  grid-template-columns: 92px 1fr auto;
   align-items: center;
   gap: 14px;
   width: 100%;
@@ -461,34 +498,6 @@ p {
   box-shadow: var(--shadow-panel);
   color: var(--faint);
   text-align: left;
-}
-
-.album-fan {
-  position: relative;
-  height: 96px;
-}
-
-.album-fan .card-img {
-  position: absolute;
-  top: 6px;
-  left: 50%;
-  width: 60px;
-  margin-left: -30px;
-  transform-origin: 50% 90%;
-}
-
-.album-fan .card-img:nth-child(1) {
-  z-index: 3;
-}
-
-.album-fan .card-img:nth-child(2) {
-  z-index: 2;
-  transform: translateX(-16px) rotate(-10deg);
-}
-
-.album-fan .card-img:nth-child(3) {
-  z-index: 1;
-  transform: translateX(16px) rotate(10deg);
 }
 
 .album-info {
@@ -951,26 +960,18 @@ p {
   display: flex;
   flex: 1;
   flex-direction: column;
+  justify-content: center;
   width: 100%;
   min-height: 0;
-}
-
-.page.is-fit .slab {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.page.is-fit .slab-well {
-  flex: 1;
-  min-height: 0;
-  padding: 18px;
   container-type: size;
 }
 
+.page.is-fit .slab-well {
+  padding: 12px;
+}
+
 .page.is-fit .slab-card {
-  width: min(84cqw, calc(100cqh * 63 / 88));
+  width: min(100cqw - 40px, (100cqh - 136px) * 63 / 88);
 }
 
 .slab {
@@ -1151,7 +1152,7 @@ p {
   display: grid;
   place-items: center;
   margin-top: 8px;
-  padding: 26px 0 30px;
+  padding: 12px;
   border-radius: 6px 6px 22px 22px;
   background: linear-gradient(160deg, #f7f7f9, #e9e9ee);
   box-shadow:
@@ -2154,3 +2155,121 @@ p {
     display: none;
   }
 }
+
+.list-cover {
+  margin: 6px 0 14px;
+  padding: 16px 20px 18px;
+  border-radius: 24px;
+}
+
+.list-cover.is-premium {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(135deg, #b8862e, #f0d58c 50%, #b8862e) border-box;
+  animation: none;
+}
+
+.list-cover .eyebrow {
+  padding: 0;
+}
+
+.list-title {
+  margin-top: 2px;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.list-sub {
+  margin-top: 4px;
+  color: var(--soft);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.list-panel {
+  padding: 16px 14px 18px;
+  border-radius: 24px;
+  background: var(--surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.book {
+  position: relative;
+  width: 78px;
+  height: 104px;
+  margin: 2px 0 6px 4px;
+}
+
+.book-pages {
+  position: absolute;
+  inset: 4px -5px -4px 6px;
+  border-radius: 2px 6px 6px 2px;
+  background:
+    repeating-linear-gradient(90deg, #fdfdfd 0 1px, #e6e6ec 1px 2px) right / 6px 100% no-repeat,
+    repeating-linear-gradient(180deg, #fdfdfd 0 1px, #e6e6ec 1px 2px) bottom / 100% 5px no-repeat,
+    #f4f4f7;
+  box-shadow: 1px 3px 8px rgba(0, 0, 0, 0.14);
+}
+
+.book-cover {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: space-between;
+  justify-items: center;
+  padding: 10px 6px 7px 16px;
+  overflow: hidden;
+  border-radius: 3px 7px 7px 3px;
+  background: linear-gradient(140deg, #ffffff, #ececf1);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.06),
+    2px 3px 10px rgba(0, 0, 0, 0.16);
+}
+
+.book-cover::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 11px;
+  background: linear-gradient(90deg, #c9c9d1, #e4e4ea 60%, #d4d4db);
+  box-shadow: 1px 0 0 rgba(0, 0, 0, 0.08);
+}
+
+.book-cover::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 11px;
+  width: 2px;
+  background: var(--holo);
+  opacity: 0.8;
+}
+
+.book-window {
+  width: 40px;
+  padding: 3px;
+  border-radius: 5px;
+  background: #fff;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.06),
+    0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.book-window .card-img {
+  border-radius: 3px;
+  box-shadow: none;
+}
+
+.book-title {
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+

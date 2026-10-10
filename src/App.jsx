@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import Binder from "./components/Binder";
 import ListView from "./components/ListView";
 import CardDetail from "./components/CardDetail";
@@ -10,6 +11,14 @@ import { db, saveCard } from "./db";
 
 const HOME = { name: "binder" };
 
+const transition = (update) => {
+  if (!document.startViewTransition) return update();
+  document.startViewTransition(async () => {
+    flushSync(update);
+    await new Promise((resolve) => setTimeout(resolve, 60));
+  });
+};
+
 function App() {
   const [view, setView] = useState(() => (window.history.state?.name ? window.history.state : HOME));
   const [toast, setToast] = useState("");
@@ -18,7 +27,7 @@ function App() {
 
   useEffect(() => {
     if (!window.history.state?.name) window.history.replaceState(HOME, "");
-    const onPop = (e) => setView(e.state?.name ? e.state : HOME);
+    const onPop = (e) => transition(() => setView(e.state?.name ? e.state : HOME));
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
@@ -35,7 +44,7 @@ function App() {
 
   const go = useCallback((next) => {
     window.history.pushState(next, "");
-    setView(next);
+    transition(() => setView(next));
   }, []);
   const back = useCallback(() => window.history.back(), []);
 

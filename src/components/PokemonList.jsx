@@ -25,8 +25,12 @@ function PokemonList({ onBack, onOpen }) {
   return (
     <div className="page">
       <PageHead back="收藏" onBack={onBack} title="寶可夢" />
-      <p className="lead">{groups.length} 隻寶可夢</p>
-      <div className="card-grid">
+      <section className="list-cover">
+        <p className="eyebrow">收藏</p>
+        <h2 className="list-title">{groups.length} 隻寶可夢</h2>
+        <p className="list-sub">點一隻寶可夢，看你有的所有卡</p>
+      </section>
+      <div className="card-grid list-panel">
         {groups.map((g) => (
           <button key={g.key} type="button" className="grid-card" onClick={() => onOpen(g.best)}>
             <Photo blob={g.best.photo} className="card-img" alt={g.name} />

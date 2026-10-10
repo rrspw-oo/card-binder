@@ -1,12 +1,13 @@
 import { useMemo } from "react";
 import { db } from "../db";
 import { useLive } from "../useLive";
-import { LANGS, SET_NAMES } from "../parse";
+import { LANGS, SET_NAMES, isPremium } from "../parse";
 import BinderPages from "./BinderPages";
 import PageHead from "./PageHead";
 import Photo from "./Photo";
 
 const LANG_LABEL = Object.fromEntries(LANGS);
+const EYEBROW = { rarity: "稀有度", tag: "標籤", dex: "寶可夢", name: "卡名" };
 const byNumber = (a, b) => (Number(a.number) || 0) - (Number(b.number) || 0) || a.number.localeCompare(b.number);
 
 function query(kind, value) {
@@ -47,7 +48,7 @@ function ListView({ kind, value, onBack, backLabel, onOpen }) {
 
   return (
     <div className="page">
-      <PageHead back={backLabel} onBack={onBack} title={title} />
+      <PageHead back={backLabel} onBack={onBack} title="" />
       {kind === "set" && first && (
         <section className="cover">
           <div className="cover-text">
@@ -97,8 +98,15 @@ function ListView({ kind, value, onBack, backLabel, onOpen }) {
         <BinderPages slots={slots} start={newest} onOpen={open} />
       ) : (
         <>
-          <p className="lead">{copies} 張</p>
-          <div className="card-grid">
+          <section className={kind === "rarity" && isPremium(value) ? "list-cover is-premium" : "list-cover"}>
+            <p className="eyebrow">{EYEBROW[kind]}</p>
+            <h2 className="list-title">{title}</h2>
+            <p className="list-sub">
+              {kind === "dex" ? `No.${String(value.dex).padStart(4, "0")}・` : ""}
+              {copies} 張・{sorted.length} 種
+            </p>
+          </section>
+          <div className="card-grid list-panel">
             {sorted.map((c) => (
               <button key={c.id} type="button" className="grid-card" onClick={() => open(c)}>
                 <Photo blob={c.photo} className="card-img" alt={c.name} />
