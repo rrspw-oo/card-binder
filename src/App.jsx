@@ -13,6 +13,7 @@ const HOME = { name: "binder" };
 function App() {
   const [view, setView] = useState(() => (window.history.state?.name ? window.history.state : HOME));
   const [toast, setToast] = useState("");
+  const [retake, setRetake] = useState(null);
   const draft = useRef(null);
 
   useEffect(() => {
@@ -99,10 +100,19 @@ function App() {
         />
       )}
       {view.name === "edit" && draft.current && (
-        <CardEditor card={draft.current.card} result={draft.current.result} onSave={onSave} onCancel={back} onDelete={onDelete} />
+        <CardEditor card={draft.current.card} result={draft.current.result} onSave={onSave} onCancel={back} onDelete={onDelete} onRetake={(apply) => setRetake(() => apply)} />
       )}
       {view.name === "pokemon" && <PokemonList onBack={back} onOpen={(card) => openList(card.dex ? "dex" : "name", { dex: card.dex, name: card.name }, "寶可夢")} />}
       {view.name === "backup" && <Backup onBack={back} />}
+      {retake && (
+        <Scanner
+          onClose={() => setRetake(null)}
+          onPhoto={(photo) => {
+            retake(photo);
+            setRetake(null);
+          }}
+        />
+      )}
       {toast && <div className="toast">{toast}</div>}
     </>
   );

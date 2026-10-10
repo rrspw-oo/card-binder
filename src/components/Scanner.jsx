@@ -57,7 +57,7 @@ const cameraMessage = (err) => {
 
 const toBlob = (canvas) => new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
 
-function Scanner({ onClose }) {
+function Scanner({ onClose, onPhoto }) {
   const videoRef = useRef(null);
   const imgRef = useRef(null);
   const frameRef = useRef(null);
@@ -214,6 +214,11 @@ function Scanner({ onClose }) {
     const framed = cropToCanvas(source, rect, Math.min(OCR_MAX_W, Math.max(CARD_W, rect[2])));
     const card = straighten(framed) || framed;
     const photoBlob = await toBlob(cropToCanvas(card, [0, 0, card.width, card.height], CARD_W));
+    if (onPhoto) {
+      setBusy(false);
+      onPhoto(photoBlob);
+      return;
+    }
     let result = null;
     try {
       const knownSets = [...new Set((await db.cards.toArray()).map((c) => c.setCode))];
@@ -262,7 +267,9 @@ function Scanner({ onClose }) {
               : "找到卡片，按下快門"
             : mode === "photo"
               ? "拖曳、縮放照片，讓卡片在框內"
-              : armed.current
+              : onPhoto
+                ? "重拍這張卡，放進框內會自動拍照"
+                : armed.current
                 ? "把卡片放進框內，會自動拍照"
                 : "換下一張卡片";
 
@@ -303,7 +310,7 @@ function Scanner({ onClose }) {
         </div>
         <div className="scanner-top">
           <button type="button" className="scanner-done" onClick={onClose}>
-            {saved ? `完成（${saved}）` : "完成"}
+            {onPhoto ? "取消" : saved ? `完成（${saved}）` : "完成"}
           </button>
         </div>
         {!pending && (

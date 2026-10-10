@@ -91,8 +91,7 @@ p {
   .sheet-backdrop,
   .tilt-inner,
   .confirm-photo,
-  .scanner-toast,
-  .slab {
+  .scanner-toast {
     animation: none !important;
   }
 
@@ -860,19 +859,11 @@ p {
   flex: 1;
   min-height: 0;
   padding: 18px;
+  container-type: size;
 }
 
 .page.is-fit .slab-card {
-  width: auto;
-  max-width: 82%;
-  height: 100%;
-  max-height: 100%;
-  aspect-ratio: 63 / 88;
-}
-
-.page.is-fit .slab-card .tilt-inner,
-.page.is-fit .slab-card .card-img {
-  height: 100%;
+  width: min(84cqw, calc(100cqh * 63 / 88));
 }
 
 .slab {
@@ -995,26 +986,13 @@ p {
   font-variant-numeric: tabular-nums;
 }
 
-.slab.from-right {
-  animation: slab-right 0.32s var(--ease);
+.slab.is-switched .slab-label,
+.slab.is-switched .slab-card {
+  animation: fade 0.22s ease-out;
 }
 
-.slab.from-left {
-  animation: slab-left 0.32s var(--ease);
-}
-
-@keyframes slab-right {
-  from {
-    opacity: 0;
-    transform: translateX(40px);
-  }
-}
-
-@keyframes slab-left {
-  from {
-    opacity: 0;
-    transform: translateX(-40px);
-  }
+.tilt.no-hint .tilt-inner {
+  animation: none;
 }
 
 .slab-rarity {
@@ -1048,26 +1026,13 @@ p {
   font-variant-numeric: tabular-nums;
 }
 
-.slab.from-right {
-  animation: slab-right 0.32s var(--ease);
+.slab.is-switched .slab-label,
+.slab.is-switched .slab-card {
+  animation: fade 0.22s ease-out;
 }
 
-.slab.from-left {
-  animation: slab-left 0.32s var(--ease);
-}
-
-@keyframes slab-right {
-  from {
-    opacity: 0;
-    transform: translateX(40px);
-  }
-}
-
-@keyframes slab-left {
-  from {
-    opacity: 0;
-    transform: translateX(-40px);
-  }
+.tilt.no-hint .tilt-inner {
+  animation: none;
 }
 
 .slab-rarity {
@@ -1455,6 +1420,22 @@ p {
   gap: 14px;
 }
 
+.retake {
+  display: inline-flex;
+  align-items: center;
+  justify-self: center;
+  gap: 8px;
+  height: 40px;
+  margin-top: -2px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--shadow-panel);
+  font-size: 15px;
+  font-weight: 600;
+}
+
 .editor-photo {
   width: 44%;
   margin: 8px auto 6px;
@@ -1679,6 +1660,7 @@ p {
 .scanner {
   position: fixed;
   inset: 0;
+  z-index: 40;
   display: flex;
   flex-direction: column;
   background: #000;

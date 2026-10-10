@@ -42,7 +42,7 @@ function CardDetail({ id, ids, onMove, onBack, backLabel, onEdit, onOpenPokemon,
         }
       />
       <div className="detail">
-        <article key={card.id} className={`slab${isPremium(card.rarity) ? " is-premium" : ""}${dir > 0 ? " from-right" : dir < 0 ? " from-left" : ""}`}>
+        <article key={card.id} className={`slab${isPremium(card.rarity) ? " is-premium" : ""}${dir ? " is-switched" : ""}`}>
           <header className="slab-label">
             <div className="slab-title">
               {card.name ? (
@@ -72,7 +72,7 @@ function CardDetail({ id, ids, onMove, onBack, backLabel, onEdit, onOpenPokemon,
             </div>
           </header>
           <div className="slab-well">
-            <TiltCard key={card.id} blob={card.photo} rarity={card.rarity} className="slab-card" alt={card.name} onSwipe={go} />
+            <TiltCard key={card.id} blob={card.photo} rarity={card.rarity} className="slab-card" alt={card.name} onSwipe={go} hint={dir === 0} />
           </div>
         </article>
       </div>

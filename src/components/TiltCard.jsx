@@ -12,13 +12,13 @@ const SPARKS = [
   [58, 12, 560],
 ];
 
-function TiltCard({ blob, rarity = "", className = "", alt = "", onSwipe }) {
+function TiltCard({ blob, rarity = "", className = "", alt = "", onSwipe, hint = true }) {
   const premium = isPremium(rarity);
   const ref = useRef(null);
   const [active, setActive] = useState(false);
-  const startRef = useRef(null);
+  const gesture = useRef(null);
 
-  const move = (e) => {
+  const tilt = (e) => {
     const el = ref.current;
     const r = el.getBoundingClientRect();
     const px = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
@@ -30,19 +30,31 @@ function TiltCard({ blob, rarity = "", className = "", alt = "", onSwipe }) {
   };
 
   const start = (e) => {
-    startRef.current = { x: e.clientX, y: e.clientY, t: performance.now() };
+    gesture.current = { x: e.clientX, y: e.clientY, t: performance.now(), mode: null };
     e.currentTarget.setPointerCapture(e.pointerId);
-    setActive(true);
-    move(e);
+  };
+
+  const move = (e) => {
+    const g = gesture.current;
+    if (!g) return;
+    if (!g.mode) {
+      const dx = e.clientX - g.x;
+      const dy = e.clientY - g.y;
+      const dt = performance.now() - g.t;
+      if (Math.hypot(dx, dy) > 10) g.mode = dt < 200 && Math.abs(dx) > Math.abs(dy) * 1.5 ? "swipe" : "tilt";
+      else if (dt > 200) g.mode = "tilt";
+      if (g.mode === "tilt") setActive(true);
+    }
+    if (g.mode === "tilt") tilt(e);
   };
 
   const end = (e) => {
-    const from = startRef.current;
-    startRef.current = null;
-    if (from && onSwipe && e.type === "pointerup") {
-      const dx = e.clientX - from.x;
-      const dy = e.clientY - from.y;
-      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5 && performance.now() - from.t < 700) onSwipe(dx < 0 ? 1 : -1);
+    const g = gesture.current;
+    gesture.current = null;
+    if (g && g.mode !== "tilt" && onSwipe && e.type === "pointerup") {
+      const dx = e.clientX - g.x;
+      const dy = e.clientY - g.y;
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5 && performance.now() - g.t < 700) onSwipe(dx < 0 ? 1 : -1);
     }
     const el = ref.current;
     setActive(false);
@@ -53,9 +65,9 @@ function TiltCard({ blob, rarity = "", className = "", alt = "", onSwipe }) {
   return (
     <div
       ref={ref}
-      className={`tilt ${active ? "is-active" : ""} ${className}`}
+      className={`tilt${active ? " is-active" : ""}${hint ? "" : " no-hint"} ${className}`}
       onPointerDown={start}
-      onPointerMove={(e) => active && move(e)}
+      onPointerMove={move}
       onPointerUp={end}
       onPointerCancel={end}
     >

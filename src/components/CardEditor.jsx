@@ -32,7 +32,7 @@ function initialForm(card, result) {
   };
 }
 
-function CardEditor({ card, result, onSave, onCancel, onDelete, sheet = false }) {
+function CardEditor({ card, result, onSave, onCancel, onDelete, onRetake, sheet = false }) {
   const [form, setForm] = useState(() => initialForm(card, result));
   const [nameFocus, setNameFocus] = useState(false);
   const [tag, setTag] = useState("");
@@ -212,6 +212,12 @@ function CardEditor({ card, result, onSave, onCancel, onDelete, sheet = false })
       <PageHead back="取消" onBack={onCancel} title={card.id ? "編輯卡片" : "確認卡片"} />
         <div className="editor">
           {!sheet && <Photo blob={form.photo} className="card-img editor-photo" />}
+          {!sheet && onRetake && (
+            <button type="button" className="retake" onClick={() => onRetake((photo) => setForm((f) => ({ ...f, photo })))}>
+              <Icon name="camera" size={18} />
+              重拍照片
+            </button>
+          )}
           <div className="field-row">
             {setCodeField}
             <label className="field is-small">
