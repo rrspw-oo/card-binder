@@ -82,7 +82,6 @@ function Binder({ onOpenSet, onOpenRarity, onOpenTag, onOpenCard, onOpenPokemon,
             <span />
           </div>
           <h2>開始你的卡冊</h2>
-          <p>把卡片放在桌上，用手機對著它，卡片會自動收進對應系列的卡冊，每個卡號都有自己的位置。</p>
         </div>
       ) : (
         <>

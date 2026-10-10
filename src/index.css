@@ -606,11 +606,6 @@ p {
   font-weight: 700;
 }
 
-.welcome p {
-  max-width: 300px;
-  color: var(--soft);
-}
-
 .dock {
   position: fixed;
   left: 0;
