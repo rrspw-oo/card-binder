@@ -578,6 +578,7 @@ p {
 .set-progress .progress {
   flex: 1;
   margin: 0;
+  background: #d4d4da;
 }
 
 .set-progress strong {
