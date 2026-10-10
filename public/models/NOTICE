@@ -1,0 +1,3 @@
+PP-OCRv6 tiny detection and recognition models and dictionary from PaddleOCR (https://github.com/PaddlePaddle/PaddleOCR),
+converted to ONNX Runtime format by ppu-paddle-ocr-models (https://huggingface.co/snowfluke/ppu-paddle-ocr-models).
+Licensed under the Apache License 2.0, see LICENSE in this folder.

@@ -9,18 +9,18 @@ export const LANGS = [
 const LANG_INDEX = { zh: 1, ja: 2, en: 3 };
 
 export function parseCode(text) {
-  const clean = text.replace(/[|lI]/g, "/").replace(/\s+/g, " ");
-  const number = clean.match(/(\d{3})\s*\/\s*(\d{2,3})/) || clean.match(/(\d{1,3})\s*\/\s*(\d{2,3})/);
-  const after = number ? clean.slice(number.index + number[0].length) : clean;
-  const rarity = after.match(/\b(SAR|RRR|ACE|RR|AR|SR|UR|HR|PR|R|U|C)\b/);
-  const set = clean.match(/\b([A-Z]{1,3}\d{1,2}[a-zA-Z]?)\b/);
-  return {
-    number: number ? number[1].padStart(3, "0") : "",
-    total: number ? number[2] : "",
-    rarity: rarity ? rarity[1] : "",
-    setCode: set ? set[1] : "",
-    full: Boolean(number && number[1].length === 3),
-  };
+  let best = null;
+  for (const raw of text.split("\n")) {
+    const line = raw.replace(/[|lI]/g, "/").replace(/\s+/g, " ");
+    const number = line.match(/(\d{3})\s*\/\s*(\d{2,3})/) || line.match(/(\d{1,3})\s*\/\s*(\d{2,3})/);
+    if (!number) continue;
+    const full = number[1].length === 3;
+    if (best && (best.full || !full)) continue;
+    const after = line.slice(number.index + number[0].length, number.index + number[0].length + 8);
+    const rarity = after.match(/^\s*(SAR|RRR|ACE|RR|AR|SR|UR|HR|PR|R|U|C)\b/);
+    best = { number: number[1].padStart(3, "0"), total: number[2], rarity: rarity ? rarity[1] : "", full };
+  }
+  return best || { number: "", total: "", rarity: "", full: false };
 }
 
 const normalize = (s) =>
@@ -91,6 +91,19 @@ export function matchName(text) {
   if (!best || best.score < (best.lang === "en" ? 0.8 : 0.6)) return null;
   if (second && best.score - second.score < 0.05) return null;
   return { dex: best.entry.dex, lang: best.lang, name: best.entry[best.lang], score: best.score };
+}
+
+export function parseDex(text) {
+  const m = text.normalize("NFKC").match(/N[o0O]\s*[.,:]?\s*(\d{3,4})\b/);
+  const dex = m ? Number(m[1]) : 0;
+  return dex >= 1 && dex <= NAMES.length ? dex : null;
+}
+
+export function detectLang(text) {
+  if (/[\u3040-\u309f\u30a0-\u30ff]{2,}/.test(text)) return "ja";
+  if ((text.match(/[\u4e00-\u9fff]/g) || []).length >= 4) return "zh";
+  if ((text.match(/[A-Za-z]{3,}/g) || []).length >= 4) return "en";
+  return null;
 }
 
 export function searchNames(query, lang) {

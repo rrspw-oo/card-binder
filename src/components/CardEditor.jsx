@@ -18,8 +18,8 @@ function initialForm(card, result) {
   const match = result?.match;
   return {
     photo: card.photo,
-    lang: last.lang || match?.lang || "zh",
-    setCode: result?.setCode || last.setCode || "",
+    lang: result?.lang || last.lang || match?.lang || "zh",
+    setCode: last.setCode || "",
     total: result?.total || last.total || "",
     number: result?.number || "",
     rarity: result?.rarity || "",

@@ -4,6 +4,7 @@ import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
   base: "/card-binder/",
+  worker: { format: "es" },
   plugins: [
     react(),
     VitePWA({
@@ -18,10 +19,19 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/npm\/(tesseract|@tesseract)/,
+            urlPattern: /\/card-binder\/models\//,
             handler: "CacheFirst",
             options: {
-              cacheName: "ocr-cache",
+              cacheName: "ocr-models",
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/npm\/onnxruntime-web@/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "ocr-runtime",
               expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 90 },
               cacheableResponse: { statuses: [200] },
             },

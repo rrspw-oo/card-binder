@@ -1,121 +1,74 @@
-import { createWorker, PSM } from "tesseract.js";
-import { parseCode, matchName } from "./parse";
-import NAMES from "./data/names.json";
+import { parseCode, matchName, parseDex, detectLang, nameOfDex } from "./parse";
+import { detectCard, warpCard, expandQuad } from "./cardDetect";
 
-const charsOf = (i) => [...new Set(NAMES.map((n) => n[i]).join(""))].join("");
-const NAME_WHITELIST = {
-  chi_tra: charsOf(1),
-  jpn: charsOf(2),
-  eng: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.- ",
-};
+const DETECT_W = 320;
+const CARD_W = 900;
+const CARD_H = Math.round((CARD_W * 88) / 63);
 
-let codeWorker;
-const nameWorkers = {};
-const NAME_LANGS = ["chi_tra", "jpn", "eng"];
+let worker;
+let seq = 0;
+const pending = new Map();
 
-const getCodeWorker = () =>
-  (codeWorker ||= createWorker("eng").then(async (w) => {
-    await w.setParameters({
-      tessedit_pageseg_mode: PSM.SPARSE_TEXT,
-      tessedit_char_whitelist: "0123456789/ ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
-    });
-    return w;
-  }));
+function getWorker() {
+  if (!worker) {
+    worker = new Worker(new URL("./ocrWorker.js", import.meta.url), { type: "module" });
+    worker.onmessage = ({ data }) => {
+      const job = pending.get(data.id);
+      pending.delete(data.id);
+      if (data.error) job.reject(new Error(data.error));
+      else job.resolve(data.text);
+    };
+  }
+  return worker;
+}
 
-const getNameWorker = (lang) =>
-  (nameWorkers[lang] ||= createWorker(lang).then(async (w) => {
-    await w.setParameters({ tessedit_char_whitelist: NAME_WHITELIST[lang] });
-    return w;
-  }));
+const run = (image) =>
+  new Promise((resolve, reject) => {
+    const id = ++seq;
+    pending.set(id, { resolve, reject });
+    getWorker().postMessage({ id, image }, image ? [image] : []);
+  });
 
-export const warmUp = () => Promise.all([getCodeWorker(), getNameWorker(NAME_LANGS[0])]);
+export const warmUp = () => run(null);
 
-export function prepare(source, [x, y, w, h], scale, binarize) {
-  const c = document.createElement("canvas");
-  c.width = Math.round(w * scale);
-  c.height = Math.round(h * scale);
-  const ctx = c.getContext("2d", { willReadFrequently: true });
-  ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(source, x, y, w, h, 0, 0, c.width, c.height);
-  const data = ctx.getImageData(0, 0, c.width, c.height);
-  const px = data.data;
-  const gray = new Uint8Array(c.width * c.height);
+const toBuffer = async (canvas) => (await new Promise((r) => canvas.toBlob(r, "image/jpeg", 0.9))).arrayBuffer();
+
+export function straighten(frame) {
+  const sw = DETECT_W;
+  const sh = Math.round((frame.height * DETECT_W) / frame.width);
+  const small = document.createElement("canvas");
+  small.width = sw;
+  small.height = sh;
+  const sctx = small.getContext("2d", { willReadFrequently: true });
+  sctx.drawImage(frame, 0, 0, sw, sh);
+  const px = sctx.getImageData(0, 0, sw, sh).data;
+  const gray = new Float32Array(sw * sh);
   for (let i = 0; i < gray.length; i++) gray[i] = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
-  let threshold = 128;
-  if (binarize) {
-    const hist = new Array(256).fill(0);
-    for (const g of gray) hist[g]++;
-    let sum = 0;
-    let sumB = 0;
-    let wB = 0;
-    let best = 0;
-    for (let t = 0; t < 256; t++) sum += t * hist[t];
-    for (let t = 0; t < 256; t++) {
-      wB += hist[t];
-      if (!wB) continue;
-      const wF = gray.length - wB;
-      if (!wF) break;
-      sumB += t * hist[t];
-      const between = wB * wF * (sumB / wB - (sum - sumB) / wF) ** 2;
-      if (between > best) {
-        best = between;
-        threshold = t;
-      }
-    }
-  }
-  let darkCount = 0;
-  for (const g of gray) if (g < threshold) darkCount++;
-  const invert = darkCount > gray.length / 2;
-  for (let i = 0; i < gray.length; i++) {
-    let v = binarize ? (gray[i] < threshold ? 0 : 255) : gray[i];
-    if (invert) v = 255 - v;
-    px[i * 4] = px[i * 4 + 1] = px[i * 4 + 2] = v;
-  }
-  ctx.putImageData(data, 0, 0);
+  const quad = detectCard(gray, sw, sh);
+  if (!quad) return null;
+  const s = frame.width / sw;
+  const src = frame.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, frame.width, frame.height).data;
+  const out = warpCard(src, frame.width, frame.height, expandQuad(quad.map(([x, y]) => [x * s, y * s]), 0.03), CARD_W, CARD_H);
+  const c = document.createElement("canvas");
+  c.width = CARD_W;
+  c.height = CARD_H;
+  c.getContext("2d").putImageData(new ImageData(out, CARD_W, CARD_H), 0, 0);
   return c;
 }
 
-const CODE_BANDS = [0.88, 0.84, 0.92, 0.8, 0.95].map((y) => [0, y, 0.65, 0.07]);
-export const NAME_REGION = [0, 0, 1, 0.3];
-
-const regionOf = (card, [fx, fy, fw, fh]) => [fx * card.width, fy * card.height, fw * card.width, fh * card.height];
-
-export async function readCard(card) {
-  const [cw] = await warmUp();
-  let code = { number: "", total: "", rarity: "", setCode: "" };
-  let codeText = "";
-  scan: for (const band of CODE_BANDS) {
-    for (const binarize of [false, true]) {
-      const out = await cw.recognize(prepare(card, regionOf(card, band), 3, binarize));
-      const parsed = parseCode(out.data.text);
-      if (parsed.number && (!code.number || parsed.full)) {
-        code = parsed;
-        codeText = out.data.text.trim();
-      }
-      if (code.full) break scan;
-    }
+export async function readCard(card, frame) {
+  let text = await run(await toBuffer(card));
+  let code = parseCode(text);
+  if (!code.full && frame && frame !== card) {
+    const second = await run(await toBuffer(frame));
+    const parsed = parseCode(second);
+    if (parsed.full) code = parsed;
+    text += `\n${second}`;
   }
-  const nameCanvas = prepare(card, regionOf(card, NAME_REGION), 1, false);
-  let match = null;
-  let nameText = "";
-  const attempts = [
-    ["chi_tra", PSM.SPARSE_TEXT],
-    ["chi_tra", PSM.SINGLE_BLOCK],
-    ["jpn", PSM.SPARSE_TEXT],
-    ["eng", PSM.SPARSE_TEXT],
-  ];
-  for (const [lang, psm] of attempts) {
-    const worker = await getNameWorker(lang);
-    await worker.setParameters({ tessedit_pageseg_mode: psm });
-    const out = await worker.recognize(nameCanvas);
-    const found = matchName(out.data.text);
-    if (found && (!match || found.score > match.score)) {
-      match = found;
-      nameText = out.data.text.trim();
-    }
-    if (match && match.score >= 0.75) break;
-  }
+  const lang = detectLang(text);
+  const dex = parseDex(text);
+  const match = dex ? { dex, lang: lang || "zh", name: nameOfDex(dex, lang || "zh") } : matchName(text);
   const { full, ...fields } = code;
   if (!full && fields.total.length === 3) fields.number = "";
-  return { ...fields, match, raw: { code: codeText, name: nameText } };
+  return { ...fields, lang, match, raw: text };
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { readCard, warmUp } from "../ocr";
+import { readCard, straighten, warmUp } from "../ocr";
 
 const CARD_W = 630;
 const CARD_H = 880;
@@ -154,11 +154,12 @@ function Scanner({ onCaptured, onClose }) {
       rect = mapFrame(frame, img.getBoundingClientRect(), img.naturalWidth, img.naturalHeight);
     }
     setBusy("辨識中");
-    const ocrCanvas = cropToCanvas(source, rect, Math.min(OCR_MAX_W, Math.max(CARD_W, rect[2])));
-    const photoBlob = await toBlob(cropToCanvas(ocrCanvas, [0, 0, ocrCanvas.width, ocrCanvas.height], CARD_W));
+    const framed = cropToCanvas(source, rect, Math.min(OCR_MAX_W, Math.max(CARD_W, rect[2])));
+    const card = straighten(framed) || framed;
+    const photoBlob = await toBlob(cropToCanvas(card, [0, 0, card.width, card.height], CARD_W));
     let result = null;
     try {
-      result = await readCard(ocrCanvas);
+      result = await readCard(card, framed);
     } catch {
       result = null;
     }
@@ -216,7 +217,7 @@ function Scanner({ onCaptured, onClose }) {
       {busy && (
         <div className="scanner-busy">
           <p>{busy}</p>
-          <p className="muted">第一次使用要下載辨識資料，需要一點時間</p>
+          <p className="muted">第一次使用要下載約 13MB 的辨識資料，需要一點時間</p>
         </div>
       )}
     </div>
