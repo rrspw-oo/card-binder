@@ -126,7 +126,7 @@ export function parseSetCode(text, known = []) {
   const exact = pool.find((k) => lookalike(k) === lookalike(guess));
   if (exact) return { code: exact, candidates: [] };
   const tail = lookalike(guess).slice(-2);
-  const byTail = tail.length === 2 ? pool.filter((k) => lookalike(k).endsWith(tail)) : [];
+  const byTail = tail.length === 2 && /[a-z]$/.test(guess) ? pool.filter((k) => lookalike(k).endsWith(tail)) : [];
   if (byTail.length) return { code: byTail[0], candidates: byTail.slice(1, 4) };
   return { code: /^[A-Z]{1,3}\d{1,2}[a-z]?$/.test(guess) ? guess : "", candidates: [] };
 }
